@@ -455,9 +455,10 @@ Biner pihak ketiga mengikuti lisensi masing-masing:
 - MediaMTX — MIT
 - FFmpeg — LGPL/GPL (sesuai build)
 - dssvcam — sesuai lisensi pembuatnya
+- 
+**[DOWNLOAD DISINI](https://github.com/oqi-aja/drone-live-engine/releases/latest)**
 
 ---
 
 
-**[DOWNLOAD DISINI](https://github.com/oqi-aja/drone-live-engine/releases/latest)**
 © 2026 Oqi
