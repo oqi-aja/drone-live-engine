@@ -7,7 +7,20 @@ sumber RTMP lain), merekam ke MP4, meneruskan siaran (restream) ke dua platform
 sekaligus, dan menyediakan tautan RTSP/HLS/WebRTC untuk vMix, OBS, Smart TV, dan
 browser — semuanya dari satu laptop di jaringan yang sama dengan drone.
 
-Tidak ada sistem lisensi, trial, atau kunci aktivasi. Semua fitur langsung terbuka.
+**CONTOH:   pernagkat yang digunakan itu ada hp, laptop, remote, dan drone dan softaware nya menggunakan drone live engine ini dan dji fly 
+   tahap menghubungkan nya yaitu buka aplikasinya dan menggunakan satu jaringan contoh hp dan laptop menggunakan wifi yang sama 
+   atau bisa dengan menggunkan hoshpot pada hp dan laptop terhubung pada hoshpot hp atau konect pada hospot hp 
+   setelah dalam satu jaaringan maka aplikasi siapdigunkaan 
+   caranya buka DLE (drone live engine) dan buka palikasi DJI Fly masuk ke tampilanvamera 
+   lalu masuk transmisi pilih live steaming menggunkan rtmp masukan link rtmp yang terdapat pada DLE di laptop
+   DJI Fly RTMP
+Tempel di Live Streaming DJI Fly. Bila ada kolom stream key, pakai rtmp://IP:1935/live + drone1.
+lalu mulai 
+
+intinya kamu pelajarri sendiri lah gampang kok pengoprasiannya dan ini bisa conet ke 2 drone sekaligus ya 
+
+
+Tidak ada sistem lisensi, trial, atau kunci aktivasi. Semua fitur langsung terbuka.**
 
 ## Mulai cepat
 
