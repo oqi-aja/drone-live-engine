@@ -11,8 +11,9 @@ Tidak ada sistem lisensi, trial, atau kunci aktivasi. Semua fitur langsung terbu
 
 ## Mulai cepat
 
-1. Buka halaman **Releases** repositori ini, lalu unduh
-   `Drone Live Engine-<versi>-setup.exe`.
+1. Buka **[halaman Releases](https://github.com/oqi-aja/drone-live-engine/releases/latest)**
+   dan unduh `Drone Live Engine-<versi>-setup.exe`
+   (di GitHub namanya tampil dengan titik, mis. `Drone.Live.Engine-0.1.5-setup.exe`).
 2. Jalankan installer dan setujui prompt administrator
    (bila SmartScreen muncul: **More info → Run anyway**).
 3. Buka aplikasi, salin tautan **DJI Fly RTMP**, tempel di DJI Fly, lalu mulai
@@ -68,6 +69,9 @@ folder instalasi.
 `Drone Live Engine-<versi>-setup.exe`. Berkas ini sudah satu paket — aplikasi,
 MediaMTX, FFmpeg, dan relay kamera virtual semuanya ada di dalamnya. Tidak perlu
 memasang Node.js atau program lain.
+
+> GitHub mengganti spasi pada nama aset menjadi titik, jadi di halaman Release
+> berkasnya terlihat seperti `Drone.Live.Engine-0.1.5-setup.exe`. Isinya sama.
 
 **Dari source:** jalankan `npm run dist`, lalu ambil installer dari folder
 `dist\`. (Lihat [bagian 14](#14-menjalankan-dari-source-untuk-pengembang).)
