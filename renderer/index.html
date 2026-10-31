@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="id" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Drone Live Engine</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 3v6M12 15v6M3 12h6M15 12h6" stroke-linecap="round" />
+              <circle cx="12" cy="12" r="3.2" />
+              <circle cx="12" cy="4" r="1.4" />
+              <circle cx="12" cy="20" r="1.4" />
+              <circle cx="4" cy="12" r="1.4" />
+              <circle cx="20" cy="12" r="1.4" />
+            </svg>
+          </div>
+          <div>
+            <h1><span id="app-name">Drone Live Engine</span> <span class="byline">by Oqi</span></h1>
+            <p class="tagline" data-i18n="tagline">Mesin siaran lokal untuk drone</p>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <span class="metric-label" data-i18n="local_time">Waktu Lokal</span>
+            <span class="metric-value mono" id="clock">--:--:--</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label" data-i18n="system_ip">IP Sistem</span>
+            <div class="ip-control">
+              <select id="ip-select" class="ip-select mono" aria-label="IP Sistem"></select>
+              <button
+                id="ip-refresh"
+                class="ip-refresh"
+                type="button"
+                aria-label="Deteksi ulang IP"
+                data-i18n-title="ip_refresh"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                  <path d="M20 11a8 8 0 1 0-2.3 5.6" stroke-linecap="round" />
+                  <path d="M20 4v7h-7" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="metric metric-graph">
+            <span class="metric-label" data-i18n="live_bitrate">Bitrate Langsung</span>
+            <span class="metric-value mono" id="bitrate">0.0 kbps</span>
+            <canvas id="bitrate-graph" width="150" height="34"></canvas>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <span class="status" id="media-status" title="RTMP :1935"><i></i><span>Menyiapkan…</span></span>
+          <button id="diag-btn" class="icon-btn" type="button" aria-label="Diagnostik" data-i18n-title="diagnostics">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M3 12h4l2.5-6 4 12 2.5-6h5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button id="theme-btn" class="icon-btn" type="button" aria-label="Theme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button id="lang-btn" class="ghost-btn" type="button">ID</button>
+        </div>
+      </header>
+
+      <div class="alert" id="fw-alert" hidden>
+        <div class="alert-text">
+          <strong data-i18n="fw_alert_title">Firewall Windows memblokir koneksi masuk</strong>
+          <span data-i18n="fw_alert_body">
+            DJI Fly tidak akan bisa mengirim RTMP sebelum port 1935 diizinkan. Tekan Perbaiki, lalu setujui
+            permintaan administrator.
+          </span>
+        </div>
+        <button id="fw-fix" class="btn btn-primary" type="button" data-i18n="fix_firewall">Perbaiki</button>
+      </div>
+
+      <main class="layout">
+        <section class="column-main">
+          <article class="card preview-card">
+            <div class="card-head">
+              <div>
+                <h2 data-i18n="preview">Pratinjau Langsung</h2>
+                <p class="sub" id="preview-sub">live/drone1</p>
+              </div>
+              <div class="camera-list" id="camera-list"></div>
+            </div>
+
+            <div class="preview" id="preview-box">
+              <video id="player" autoplay playsinline muted></video>
+
+              <div class="standby" id="standby">
+                <span class="pulse"></span>
+                <p data-i18n="waiting">Menunggu sinyal drone…</p>
+                <small data-i18n="waiting_hint">Kirim RTMP dari DJI Fly ke alamat di bawah.</small>
+              </div>
+
+              <div class="watermark" id="watermark" hidden>LIVE</div>
+              <img class="logo-overlay" id="logo-overlay" alt="" hidden />
+
+              <div class="preview-tools">
+                <button id="wm-btn" class="chip" type="button" data-i18n="watermark">Watermark</button>
+                <input id="wm-input" class="input input-inline" value="LIVE" maxlength="40" aria-label="Watermark text" />
+                <button id="logo-btn" class="chip" type="button" data-i18n="logo">Logo</button>
+                <input id="logo-input" type="file" accept="image/*" hidden />
+                <button id="fs-btn" class="chip chip-icon" type="button" aria-label="Fullscreen">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke-linecap="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2 data-i18n="links">Tautan Koneksi</h2>
+                <p class="sub" data-i18n="links_sub">Gunakan tautan sesuai perangkat tujuan.</p>
+              </div>
+              <span class="pill mono" id="link-stream">live/drone1</span>
+            </div>
+
+            <div class="links">
+              <div class="link-row">
+                <div class="link-head">
+                  <span class="link-title" data-i18n="link_dji">1. DJI Fly RTMP</span>
+                  <span class="link-desc" data-i18n="desc_dji">
+                    Tempel di Live Streaming DJI Fly. Bila ada kolom stream key, pakai rtmp://IP:1935/live +
+                    drone1.
+                  </span>
+                </div>
+                <div class="link-input">
+                  <input id="l-dji" class="input mono" readonly />
+                  <button class="btn btn-ghost" type="button" data-copy="l-dji" data-i18n="copy">Salin</button>
+                  <button class="btn btn-ghost btn-qr" type="button" data-qr="l-dji">QR</button>
+                </div>
+              </div>
+
+              <div class="link-row">
+                <div class="link-head">
+                  <span class="link-title" data-i18n="link_rtsp">2. RTSP (vMix / OBS)</span>
+                  <span class="link-desc" data-i18n="desc_rtsp">Input jaringan untuk vMix atau OBS.</span>
+                </div>
+                <div class="link-input">
+                  <input id="l-rtsp" class="input mono" readonly />
+                  <button class="btn btn-ghost" type="button" data-copy="l-rtsp" data-i18n="copy">Salin</button>
+                  <button class="btn btn-ghost btn-qr" type="button" data-qr="l-rtsp">QR</button>
+                </div>
+              </div>
+
+              <div class="link-row">
+                <div class="link-head">
+                  <span class="link-title" data-i18n="link_hls">3. HLS (Smart TV)</span>
+                  <span class="link-desc" data-i18n="desc_hls">Cocok untuk pemutar browser di Smart TV.</span>
+                </div>
+                <div class="link-input">
+                  <input id="l-hls" class="input mono" readonly />
+                  <button class="btn btn-ghost" type="button" data-copy="l-hls" data-i18n="copy">Salin</button>
+                  <button class="btn btn-ghost btn-qr" type="button" data-qr="l-hls">QR</button>
+                </div>
+              </div>
+
+              <div class="link-row">
+                <div class="link-head">
+                  <span class="link-title" data-i18n="link_web">4. Tonton di Browser</span>
+                  <span class="link-desc" data-i18n="desc_web">Bagikan QR agar penonton bisa memantau dari HP.</span>
+                </div>
+                <div class="link-input">
+                  <input id="l-web" class="input mono" readonly />
+                  <button class="btn btn-ghost" type="button" data-copy="l-web" data-i18n="copy">Salin</button>
+                  <button class="btn btn-ghost btn-qr" type="button" data-qr="l-web">QR</button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <aside class="column-side">
+          <article class="card">
+            <div class="card-head">
+              <h2 data-i18n="recording">Rekaman</h2>
+              <span class="status" id="rec-status"><i></i><span data-i18n="idle">Siaga</span></span>
+            </div>
+
+            <label class="field-label" for="rec-folder" data-i18n="folder">Folder penyimpanan</label>
+            <div class="field-row">
+              <input id="rec-folder" class="input mono" readonly data-i18n-ph="folder_ph" placeholder="Belum dipilih" />
+              <button id="browse-btn" class="btn btn-ghost" type="button" data-i18n="browse">Pilih</button>
+            </div>
+
+            <button id="rec-btn" class="btn btn-primary btn-block" type="button" data-i18n="start_rec">Mulai Rekam</button>
+            <p class="hint mono" id="rec-file" hidden></p>
+            <p class="hint" data-i18n="rec_hint">Rekaman memakai fragmen MP4, tetap aman walau drone terputus.</p>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h2 data-i18n="restream">Restream</h2>
+              <span class="status" id="rs-status"><i></i><span data-i18n="idle">Siaga</span></span>
+            </div>
+
+            <div class="target">
+              <span class="target-label" data-i18n="target1">Target 1</span>
+              <input id="rs-url1" class="input mono" placeholder="rtmp://a.rtmp.youtube.com/live2" />
+              <input id="rs-key1" class="input mono" placeholder="stream key" />
+            </div>
+
+            <div class="target">
+              <span class="target-label" data-i18n="target2">Target 2 (opsional)</span>
+              <input id="rs-url2" class="input mono" placeholder="rtmp://live.instagram.com/rtmp" />
+              <input id="rs-key2" class="input mono" placeholder="stream key" />
+            </div>
+
+            <div class="field-row two">
+              <div class="field">
+                <label class="field-label" for="rs-audio" data-i18n="audio">Sumber audio</label>
+                <select id="rs-audio" class="input">
+                  <option value="stream" data-i18n="audio_stream">Audio dari stream</option>
+                  <option value="silent" data-i18n="audio_silent">Tanpa audio</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label" for="rs-quality" data-i18n="quality">Kualitas</label>
+                <select id="rs-quality" class="input"></select>
+              </div>
+            </div>
+
+            <div class="btn-row">
+              <button id="rs-btn1" class="btn btn-outline" type="button" data-i18n="start_rs1">Mulai 1</button>
+              <button id="rs-btn2" class="btn btn-outline" type="button" data-i18n="start_rs2">Mulai 2</button>
+              <button id="rs-stop" class="btn btn-danger" type="button" data-i18n="stop">Stop</button>
+            </div>
+            <p class="hint wait-hint" id="rs-wait" hidden>
+              <span id="rs-wait-text"></span>
+              <code class="mono" id="rs-wait-link"></code>
+            </p>
+            <p class="hint error-hint" id="rs-error" hidden></p>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h2 data-i18n="vcam">Kamera Virtual</h2>
+              <span class="status" id="vcam-status"><i></i><span data-i18n="off">Mati</span></span>
+            </div>
+            <p class="hint" data-i18n="vcam_hint">
+              Aktifkan bila vMix atau OBS tidak bisa membuka RTSP. Memakai CPU dan RAM tambahan.
+            </p>
+            <button id="vcam-btn" class="btn btn-outline btn-block" type="button" data-i18n="start_vcam">Nyalakan VCam</button>
+          </article>
+
+          <article class="card guide">
+            <details>
+              <summary data-i18n="guide_title">Panduan singkat</summary>
+              <div class="guide-body">
+                <h3 data-i18n="guide_1_title">1. Menghubungkan drone</h3>
+                <p data-i18n="guide_1_desc">
+                  Buka DJI Fly, masuk ke Pengaturan Transmisi, pilih Live Streaming (RTMP), lalu tempel tautan
+                  DJI Fly RTMP. Bila DJI meminta URL dan stream key terpisah, isi URL dengan
+                  rtmp://IP:1935/live dan key drone1. HP/RC dan laptop harus berada di jaringan Wi-Fi yang
+                  sama, dan pilih IP yang sesuai di bagian atas.
+                </p>
+                <h3 data-i18n="guide_2_title">2. Rekaman</h3>
+                <p data-i18n="guide_2_desc">
+                  Pilih folder lalu tekan Mulai Rekam. Rekaman mengikuti kamera yang sedang dipilih. Berkas
+                  tetap dapat diputar meskipun koneksi drone terputus mendadak.
+                </p>
+                <h3 data-i18n="guide_3_title">3. Restream</h3>
+                <p data-i18n="guide_3_desc">
+                  Isi URL dan stream key dari platform tujuan. Dua target dapat berjalan bersamaan. Pilih
+                  mikrofon bila ingin menambahkan suara dari lokasi.
+                </p>
+                <h3 data-i18n="guide_4_title">4. vMix, OBS, dan Smart TV</h3>
+                <p data-i18n="guide_4_desc">
+                  Gunakan RTSP untuk vMix/OBS, HLS untuk Smart TV, atau kamera virtual untuk aplikasi yang
+                  hanya mengenal kamera Windows.
+                </p>
+              </div>
+            </details>
+          </article>
+        </aside>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <div class="modal" id="qr-modal" hidden>
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3 id="qr-title">QR</h3>
+          <button id="qr-close" class="icon-btn" type="button" aria-label="Close">✕</button>
+        </div>
+        <img id="qr-image" alt="QR code" />
+        <p class="mono qr-text" id="qr-text"></p>
+      </div>
+    </div>
+
+    <div class="modal" id="diag-modal" hidden>
+      <div class="modal-card diag-card">
+        <div class="modal-head">
+          <h3 data-i18n="diagnostics">Diagnostik</h3>
+          <button id="diag-close" class="icon-btn" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="diag-body" id="diag-body"></div>
+        <p class="diag-credit">
+          <span id="diag-version">Drone Live Engine</span> · by Oqi
+        </p>
+        <div class="diag-actions">
+          <button id="diag-fix-fw" class="btn btn-primary" type="button" data-i18n="fix_firewall">
+            Perbaiki Firewall
+          </button>
+          <button id="diag-open-logs" class="btn btn-ghost" type="button" data-i18n="open_logs">
+            Buka Log
+          </button>
+          <button id="diag-refresh" class="btn btn-ghost" type="button" data-i18n="refresh">Muat Ulang</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

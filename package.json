@@ -1,0 +1,59 @@
+{
+  "name": "drone-live-engine",
+  "version": "0.1.5",
+  "description": "Local drone livestream engine: RTMP ingest, recording, restream, virtual camera",
+  "main": "src/main.js",
+  "author": "Oqi",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "check": "node scripts/check.js",
+    "dist": "electron-builder --win"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.example.dronelive",
+    "productName": "Drone Live Engine",
+    "copyright": "Copyright © 2026 Oqi",
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": ".",
+        "filter": ["**/*"]
+      }
+    ],
+    "extraFiles": [
+      {
+        "from": "README.md",
+        "to": "PANDUAN.md"
+      }
+    ],
+    "win": {
+      "target": ["nsis"],
+      "artifactName": "${productName}-${version}-setup.${ext}"
+    },
+    "nsis": {
+      "include": "installer/installer.nsh",
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

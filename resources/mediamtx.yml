@@ -1,0 +1,43 @@
+# Drone Live Engine — konfigurasi MediaMTX
+# Port dan path harus sama dengan src/config.js.
+
+logLevel: info
+logDestinations: [stdout]
+
+# --- Ingest ---------------------------------------------------------------
+rtmp: yes
+rtmpAddress: :1935
+
+# --- Playback -------------------------------------------------------------
+rtsp: yes
+rtspAddress: :8554
+rtspTransports: [tcp]
+
+hls: yes
+hlsAddress: :8888
+hlsVariant: lowLatency
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+hlsAlwaysRemux: no
+
+webrtc: yes
+webrtcAddress: :8889
+webrtcAllowOrigins: ['*']
+webrtcLocalUDPAddress: :8189
+webrtcIPsFromInterfaces: yes
+
+# SRT tidak dipakai panel; matikan agar tidak ada port tambahan terbuka.
+srt: no
+
+# --- Control API (bitrate + daftar kamera) --------------------------------
+# Hanya loopback: API ini tidak punya autentikasi.
+api: yes
+apiAddress: 127.0.0.1:9997
+
+# --- Buffer ---------------------------------------------------------------
+writeQueueSize: 512
+
+# Terima semua nama path, mis. live/drone1, live/drone2, ...
+paths:
+  all_others:
