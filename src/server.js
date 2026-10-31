@@ -16,6 +16,40 @@ const COOKIE_NAME = 'dle_panel';
 const DEVICE_COOKIE = 'dle_device';
 const MAX_QR_TEXT = 512;
 
+// UnityCapture-based DirectShow virtual camera (MIT, Bernhard Schelling):
+// the DirectShow filter DLL registers these CLSIDs via regsvr32 at install
+// time. OBS/vMix/browsers are 64-bit and only see the 64-bit registration, so
+// diagnostics report each architecture separately.
+const VCAM_CLSID_64 = '{5C2CD55C-92AD-4999-8666-912BD3E70010}';
+const VCAM_CLSID_32 = '{5C2CD55C-92AD-4999-8666-912BD3E70020}';
+
+function readDefaultRegValue(key) {
+  return new Promise((resolve) => {
+    execFile('reg.exe', ['query', key, '/ve'], { windowsHide: true, timeout: 5000 }, (error, stdout) => {
+      if (error || !stdout) {
+        resolve(null);
+        return;
+      }
+      const line = String(stdout).split(/\r?\n/).find((entry) => entry.includes('REG_SZ'));
+      if (!line) {
+        resolve(null);
+        return;
+      }
+      const idx = line.indexOf('REG_SZ');
+      const value = line.slice(idx + 6).trim();
+      resolve(value || null);
+    });
+  });
+}
+
+async function getVcamFilterInfo() {
+  const [dll64, dll32] = await Promise.all([
+    readDefaultRegValue(`HKLM\\SOFTWARE\\Classes\\CLSID\\${VCAM_CLSID_64}\\InprocServer32`),
+    readDefaultRegValue(`HKLM\\SOFTWARE\\Classes\\Wow6432Node\\CLSID\\${VCAM_CLSID_32}\\InprocServer32`),
+  ]);
+  return { registered64: dll64, registered32: dll32, ok: Boolean(dll64 && dll32) };
+}
+
 function timingSafeEqual(a, b) {
   const left = crypto.createHash('sha256').update(String(a)).digest();
   const right = crypto.createHash('sha256').update(String(b)).digest();
@@ -511,6 +545,7 @@ function createPanel({
           ffmpeg: engine.resolveBinary('ffmpeg.exe'),
           dssvcam: engine.resolveBinary('dssvcam.exe'),
         },
+        vcamFilter: await getVcamFilterInfo(),
         ports: await Promise.all(
           ports.map(async ([name, port]) => ({
             name,

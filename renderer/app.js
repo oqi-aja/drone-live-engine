@@ -52,6 +52,8 @@ const translations = {
     start_vcam: 'Nyalakan VCam',
     stop_vcam: 'Matikan VCam',
     vcam_on: 'Aktif',
+    vcam_waiting: 'Menunggu aplikasi tujuan',
+    vcam_pick_hint: 'Lalu pilih kamera Drone Live Engine di OBS, vMix, Meet, atau Zoom.',
     guide_title: 'Panduan singkat',
     guide_1_title: '1. Menghubungkan drone',
     guide_1_desc:
@@ -194,6 +196,8 @@ const translations = {
     start_vcam: 'Turn VCam On',
     stop_vcam: 'Turn VCam Off',
     vcam_on: 'Active',
+    vcam_waiting: 'Waiting for target app',
+    vcam_pick_hint: 'Then pick the Drone Live Engine camera in OBS, vMix, Meet, or Zoom.',
     guide_title: 'Quick guide',
     guide_1_title: '1. Connecting the drone',
     guide_1_desc:
@@ -317,6 +321,8 @@ const state = {
   networkBusy: false,
   targets: { 1: false, 2: false },
   vcam: false,
+  vcamStreaming: false,
+  vcamRelayRunning: false,
   watermark: false,
   logo: false,
   mediaMissingWarned: false,
@@ -1085,6 +1091,8 @@ async function pollState() {
     state.restreamError = snapshot.restream?.error || '';
     if (!state.restreaming && !state.restreamWaiting) state.targets = { 1: false, 2: false };
     state.vcam = Boolean(snapshot.virtualCamera?.active);
+    state.vcamStreaming = Boolean(snapshot.virtualCamera?.streaming);
+    state.vcamRelayRunning = Boolean(snapshot.virtualCamera?.relayRunning);
 
     renderRecording();
     renderRestream();
@@ -1190,8 +1198,17 @@ function renderMediaState(snapshot) {
 
 function renderVcam() {
   const status = $('#vcam-status');
-  status.classList.toggle('on', state.vcam);
-  status.querySelector('span').textContent = state.vcam ? t('vcam_on') : t('off');
+  const live = state.vcam && state.vcamStreaming;
+  status.classList.toggle('on', live);
+  // VCam "on" only shows while frames actually flow; while the relay waits for
+  // a DirectShow consumer (OBS/vMix/browser opening the camera) show the hint.
+  if (!state.vcam) {
+    status.querySelector('span').textContent = t('off');
+  } else if (live) {
+    status.querySelector('span').textContent = t('vcam_on');
+  } else {
+    status.querySelector('span').textContent = t('vcam_waiting');
+  }
 
   const button = $('#vcam-btn');
   button.textContent = state.vcam ? t('stop_vcam') : t('start_vcam');

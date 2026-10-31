@@ -7,20 +7,7 @@ sumber RTMP lain), merekam ke MP4, meneruskan siaran (restream) ke dua platform
 sekaligus, dan menyediakan tautan RTSP/HLS/WebRTC untuk vMix, OBS, Smart TV, dan
 browser — semuanya dari satu laptop di jaringan yang sama dengan drone.
 
-**CONTOH:   pernagkat yang digunakan itu ada hp, laptop, remote, dan drone dan softaware nya menggunakan drone live engine ini dan dji fly 
-   tahap menghubungkan nya yaitu buka aplikasinya dan menggunakan satu jaringan contoh hp dan laptop menggunakan wifi yang sama 
-   atau bisa dengan menggunkan hoshpot pada hp dan laptop terhubung pada hoshpot hp atau konect pada hospot hp 
-   setelah dalam satu jaaringan maka aplikasi siapdigunkaan 
-   caranya buka DLE (drone live engine) dan buka palikasi DJI Fly masuk ke tampilanvamera 
-   lalu masuk transmisi pilih live steaming menggunkan rtmp masukan link rtmp yang terdapat pada DLE di laptop
-   DJI Fly RTMP
-Tempel di Live Streaming DJI Fly. Bila ada kolom stream key, pakai rtmp://IP:1935/live + drone1.
-lalu mulai 
-
-intinya kamu pelajarri sendiri lah gampang kok pengoprasiannya dan ini bisa conet ke 2 drone sekaligus ya 
-
-
-Tidak ada sistem lisensi, trial, atau kunci aktivasi. Semua fitur langsung terbuka.**
+Tidak ada sistem lisensi, trial, atau kunci aktivasi. Semua fitur langsung terbuka.
 
 ## Mulai cepat
 
@@ -328,11 +315,20 @@ Google Meet) bisa memakai siaran drone.
 
 1. Pastikan `dssvcam.exe` ada di folder `resources\` (sudah dipasang installer).
 2. Di kartu **Kamera Virtual**, tekan **Nyalakan VCam**.
-3. Status berubah menjadi **Aktif**.
-4. Di aplikasi tujuan, pilih kamera bernama **Drone Live Engine** / **dssvcam**.
+3. Di aplikasi tujuan (OBS, vMix, Zoom, Meet), pilih kamera bernama
+   **Drone Live Engine**.
+4. Begitu kamera itu dibuka aplikasi tujuan, status kartu berubah menjadi
+   **Aktif** — sebelum itu statusnya **Menunggu aplikasi tujuan**; itu normal.
 
 Catatan:
 
+- Installer mendaftarkan filter kamera virtual (DirectShow) untuk Windows
+  32-bit dan 64-bit, jadi kamera **Drone Live Engine** terlihat oleh semua
+  aplikasi, termasuk OBS Studio dan vMix versi 64-bit. Bila kamera tidak
+  muncul, jalankan ulang installer lalu restart aplikasi tujuan.
+- Engine menjaga proses relai kamera selalu siap dan menyalakan ulang
+  otomatis; urutan menyalakan VCam sebelum/sesudah membuka OBS tidak lagi
+  penting.
 - Kamera virtual memakai CPU tambahan karena harus mengubah frame terus-menerus.
 - Jika gagal, aplikasi mencoba ulang otomatis dengan jeda yang makin panjang;
   pesan kesalahan ditampilkan di kartu tersebut.
@@ -408,7 +404,7 @@ bisa diganti tanpa mengubah konfigurasi.
 | Restream langsung berhenti | Stream key salah / internet putus | Cek pesan error di kartu Restream, uji internet, pastikan stream key benar |
 | Video restream tersendat | Bitrate terlalu tinggi untuk jaringan | Pilih kualitas **Seimbang** atau **Hemat** |
 | Penonton HLS lambat | Sifat protokol HLS | Gunakan WebRTC untuk latensi rendah |
-| VCam tidak muncul di Zoom/OBS | `dssvcam.exe` tidak ada atau gagal start | Cek **Diagnostik** → Biner; nyalakan ulang VCam; restart aplikasi tujuan |
+| VCam tidak muncul di Zoom/OBS | Filter kamera belum terdaftar atau aplikasi tujuan dipasang sebelum VCam aktif | Jalankan ulang installer (mendaftarkan ulang filter); restart aplikasi tujuan; cek **Diagnostik** |
 | Laptop tidak bisa diakses perangkat lain | Jaringan tamu / AP isolation | Gunakan hotspot dari HP/RC |
 | Aplikasi tidak mau terbuka | Instance lama masih berjalan | Tutup lewat Task Manager, lalu buka lagi |
 
@@ -451,13 +447,17 @@ resources/
   mediamtx.exe
   mediamtx.yml
   ffmpeg.exe
-  dssvcam.exe     (opsional, untuk kamera virtual)
+  dssvcam.exe                    (opsional, untuk kamera virtual)
+  UnityCaptureFilter32.dll      (opsional, filter kamera virtual 32-bit)
+  UnityCaptureFilter64.dll      (opsional, filter kamera virtual 64-bit)
 ```
 
 Biner tidak disertakan di repositori. Unduh dari rilis resmi:
 
 - MediaMTX — <https://github.com/bluenviron/mediamtx/releases>
 - FFmpeg — <https://www.gyan.dev/ffmpeg/builds/> (build `essentials`)
+- Filter kamera virtual (UnityCapture, MIT) —
+  <https://github.com/schellingb/UnityCapture> (folder `Install/`)
 
 Perintah:
 
@@ -531,10 +531,10 @@ Biner pihak ketiga mengikuti lisensi masing-masing:
 - MediaMTX — MIT
 - FFmpeg — LGPL/GPL (sesuai build)
 - dssvcam — sesuai lisensi pembuatnya
-- 
-**[DOWNLOAD DISINI](https://github.com/oqi-aja/drone-live-engine/releases/latest)**
+- UnityCaptureFilter (kamera virtual) — MIT, © 2018 Bernhard Schelling,
+  diadaptasi dari UnityCam © 2016 MHD Yamen Saraiji; detail di
+  `resources\THIRD-PARTY-VCAM.txt`
 
 ---
-
 
 © 2026 Oqi

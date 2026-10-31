@@ -160,6 +160,9 @@ class Engine extends EventEmitter {
       stream: config.streams.default,
       ffmpeg: null,
       relay: null,
+      relaySpawnedAt: 0,
+      relayWarned: false,
+      relayWatchdog: null,
       retryTimer: null,
       retries: 0,
     };
@@ -690,10 +693,12 @@ class Engine extends EventEmitter {
 
     this.vcam.intended = true;
     this.vcam.stream = stream;
+    this.vcam.relayWarned = false;
 
     await this._stopVcamFfmpeg();
     this._spawnVcamRelay(relay);
     this._spawnVcamFfmpeg(binary);
+    this._startVcamRelayWatchdog();
 
     this.emit('state');
     return { stream };
@@ -749,6 +754,52 @@ class Engine extends EventEmitter {
     });
   }
 
+  /**
+   * dssvcam.exe only works when some app (OBS, vMix, browser) already has the
+   * "Drone Live Engine" DirectShow camera open: it opens the UnityCapture mutex
+   * / shared mapping created by the filter and only then starts listening on
+   * the frame port. Started too early it exits 0 within a second. Spawn order
+   * is control-out-of-our-hands, so a light watchdog keeps respawning the
+   * relay (114 KB, negligible) until a consumer opens the camera or VCam is
+   * turned off. As soon as the relay survives, ffmpeg gets an immediate kick
+   * instead of waiting out its backoff timer.
+   */
+  _startVcamRelayWatchdog() {
+    this._stopVcamRelayWatchdog();
+    this.vcam.relayWatchdog = setInterval(() => {
+      if (!this.vcam.intended) {
+        this._stopVcamRelayWatchdog();
+        return;
+      }
+      if (this.vcam.relay) {
+        if (!this.vcam.ffmpeg && this.vcam.relaySpawnedAt && Date.now() - this.vcam.relaySpawnedAt > 500) {
+          this._kickVcamFfmpeg();
+        }
+        return;
+      }
+      const relay = this.resolveBinary(BINARIES.virtualCamera);
+      if (!relay) return;
+      this._spawnVcamRelay(relay);
+      if (this.vcam.relay) this._kickVcamFfmpeg();
+    }, 1500);
+  }
+
+  _stopVcamRelayWatchdog() {
+    if (this.vcam.relayWatchdog) {
+      clearInterval(this.vcam.relayWatchdog);
+      this.vcam.relayWatchdog = null;
+    }
+  }
+
+  /** Give the ffmpeg frame puller a fresh attempt right away. */
+  _kickVcamFfmpeg() {
+    if (this.vcam.ffmpeg || !this.vcam.intended) return;
+    clearTimeout(this.vcam.retryTimer);
+    this.vcam.retries = 0;
+    const bin = this.resolveBinary(BINARIES.ffmpeg);
+    if (bin) this._spawnVcamFfmpeg(bin);
+  }
+
   _spawnVcamRelay(binary) {
     if (this.vcam.relay) return;
     const { width, height } = this.config.virtualCamera;
@@ -763,8 +814,27 @@ class Engine extends EventEmitter {
       });
       child.unref();
       this.vcam.relay = child;
-      child.once('close', () => {
-        if (this.vcam.relay === child) this.vcam.relay = null;
+      this.vcam.relaySpawnedAt = Date.now();
+      this.emit('state');
+      child.once('close', (code) => {
+        if (this.vcam.relay !== child) return;
+        this.vcam.relay = null;
+        this.emit('state');
+        if (!this.vcam.intended) return;
+        const age = Date.now() - this.vcam.relaySpawnedAt;
+        if (age < 2000) {
+          // Normal while no DirectShow consumer has the camera open yet.
+          if (!this.vcam.relayWarned) {
+            this.vcam.relayWarned = true;
+            this.log.info('[vcam] relay menunggu: buka kamera "Drone Live Engine" di OBS/vMix/browser');
+            this.emit('log', {
+              level: 'info',
+              message: 'VCam menunggu kamera "Drone Live Engine" dibuka di aplikasi tujuan',
+            });
+          }
+        } else {
+          this.log.warn(`[vcam] relay keluar (kode ${code == null ? '?' : code}), dijalankan ulang otomatis`);
+        }
       });
     } catch (error) {
       this.log.warn('[vcam] relay gagal dijalankan:', error.message);
@@ -782,7 +852,15 @@ class Engine extends EventEmitter {
     this.vcam.intended = false;
     clearTimeout(this.vcam.retryTimer);
     this.vcam.retryTimer = null;
+    this._stopVcamRelayWatchdog();
+    const relay = this.vcam.relay;
     await this._stopVcamFfmpeg();
+    if (relay) {
+      try {
+        await stopProcess(relay, { graceful: true });
+      } catch { /* relay is detached; ignore */ }
+    }
+    this.vcam.relay = null;
     this.emit('state');
   }
 
@@ -800,6 +878,8 @@ class Engine extends EventEmitter {
       },
       virtualCamera: {
         active: Boolean(this.vcam.intended),
+        streaming: Boolean(this.vcam.ffmpeg),
+        relayRunning: Boolean(this.vcam.relay),
         stream: this.vcam.stream,
       },
       media: {
@@ -814,6 +894,8 @@ class Engine extends EventEmitter {
   async shutdown() {
     this.vcam.intended = false;
     clearTimeout(this.vcam.retryTimer);
+    this.vcam.retryTimer = null;
+    this._stopVcamRelayWatchdog();
     this._cancelSourceWait();
     await Promise.allSettled([
       this._stopVcamFfmpeg(),
