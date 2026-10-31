@@ -34,6 +34,12 @@ body[data-mode='mobile'] .brand {
   min-width: 0;
 }
 
+/* Pembungkus judul juga harus boleh menyusut, kalau tidak h1 nowrap
+   mendorong teks melewati track grid dan nimpa badge status. */
+body[data-mode='mobile'] .brand > div {
+  min-width: 0;
+}
+
 body[data-mode='mobile'] .brand-mark {
   width: 2.25rem;
   height: 2.25rem;
@@ -107,6 +113,9 @@ body[data-mode='mobile'] #diag-btn {
 body[data-mode='mobile'] .layout {
   display: flex;
   flex-direction: column;
+  /* Tanpa ini, align-items:start warisan desktop membuat kartu
+     susut mengikuti isi (card-rs mentok 17rem, card-preview juga). */
+  align-items: stretch;
   gap: 0.875rem;
   padding: 0.875rem;
 }
