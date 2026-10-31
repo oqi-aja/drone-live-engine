@@ -3,12 +3,15 @@
 const { app, BrowserWindow, dialog, shell } = require('electron');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const config = require('./config');
 const { Engine } = require('./engine');
 const { createLogger } = require('./logger');
 const { createPanel } = require('./server');
+const { DeviceStore } = require('./devices');
+const { detectNetwork } = require('./network');
 
 const isDev = process.argv.includes('--dev');
 
@@ -17,6 +20,10 @@ let panelServer = null;
 let engine = null;
 let logger = null;
 let panelOrigin = '';
+let panel = null;
+let serverHost = config.panel.host;
+let boundPort = config.panel.port;
+let lanIp = '';
 let shuttingDown = false;
 
 if (!app.requestSingleInstanceLock()) {
@@ -82,6 +89,70 @@ function resourceDirs() {
   return dirs;
 }
 
+function listenOnce(host, port) {
+  return new Promise((resolve, reject) => {
+    const server = panel.app.listen(port, host);
+    server.once('listening', () => resolve(server));
+    server.once('error', reject);
+  });
+}
+
+async function closeServer(server) {
+  if (!server) return;
+  // Berhenti menerima koneksi baru dan lepaskan port segera. Koneksi yang
+  // sedang membawa balasan (mis. toggle akses HP) tidak diputus paksa;
+  // soket keep-alive yang menganggur dibersihkan setelah balasan terkirim.
+  server.close();
+  if (typeof server.closeIdleConnections === 'function') server.closeIdleConnections();
+  setTimeout(() => {
+    try {
+      if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+    } catch {
+      /* best effort */
+    }
+  }, 500);
+}
+
+/** Semua alamat IPv4 lokal (tanpa loopback), dipakai untuk allowlist Host. */
+function localIpv4s() {
+  const list = [];
+  for (const entries of Object.values(os.networkInterfaces())) {
+    for (const entry of entries || []) {
+      if (entry.family === 'IPv4' && !entry.internal) list.push(entry.address);
+    }
+  }
+  return list;
+}
+
+/**
+ * Panel desktop selalu di 127.0.0.1. Saat akses HP dinyalakan, listener yang
+ * sama dipindah ke 0.0.0.0 supaya tidak ada dua proses berebut port yang sama.
+ */
+async function setLanAccess(enabled, preferredIp = '') {
+  if (enabled) {
+    if (preferredIp && localIpv4s().includes(preferredIp)) {
+      lanIp = preferredIp;
+    } else if (!lanIp) {
+      try {
+        const network = await detectNetwork({ osModule: os });
+        lanIp = network.ip || '';
+      } catch {
+        lanIp = '';
+      }
+    }
+  }
+  const target = enabled ? '0.0.0.0' : config.panel.host;
+  if (target === serverHost) {
+    panel.setLan(enabled);
+    return;
+  }
+  await closeServer(panelServer);
+  panelServer = await listenOnce(target, boundPort);
+  serverHost = target;
+  panel.setLan(enabled);
+  logger.info(`[panel] listener pindah ke ${target}:${boundPort}`);
+}
+
 async function pickFolder() {
   if (!mainWindow || mainWindow.isDestroyed()) return null;
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -116,7 +187,19 @@ async function start() {
 
   await engine.startMediaMtx();
 
-  const panel = createPanel({
+  try {
+    const network = await detectNetwork({ osModule: os });
+    lanIp = network.ip || '';
+  } catch {
+    lanIp = '';
+  }
+
+  const devices = new DeviceStore({
+    file: path.join(app.getPath('appData'), 'drone-live-engine', 'devices.json'),
+    logger,
+  });
+
+  panel = createPanel({
     engine,
     config,
     token,
@@ -126,27 +209,33 @@ async function start() {
     openPath: (target) => shell.openPath(target),
     logFile: logger.file,
     logger,
+    devices,
+    lan: {
+      enabled: false,
+      getState: () => ({ ip: lanIp }),
+      listHosts: () => {
+        const hosts = localIpv4s();
+        if (lanIp && !hosts.includes(lanIp)) hosts.push(lanIp);
+        return hosts;
+      },
+      onChange: setLanAccess,
+    },
   });
 
-  panelServer = panel.app.listen(config.panel.port, config.panel.host);
-  let boundPort;
   try {
-    boundPort = await new Promise((resolve, reject) => {
-      panelServer.once('listening', () => resolve(panelServer.address().port));
-      panelServer.once('error', reject);
-    });
+    panelServer = await listenOnce(config.panel.host, config.panel.port);
   } catch (error) {
     if (error.code !== 'EADDRINUSE') throw error;
     // Another copy is already using the preferred port: pick a free one.
-    panelServer = panel.app.listen(0, config.panel.host);
-    boundPort = await new Promise((resolve, reject) => {
-      panelServer.once('listening', () => resolve(panelServer.address().port));
-      panelServer.once('error', reject);
-    });
+    panelServer = await listenOnce(config.panel.host, 0);
   }
+
+  boundPort = panelServer.address().port;
+  serverHost = config.panel.host;
 
   panel.setBoundPort(boundPort);
   panelOrigin = `http://${config.panel.host}:${boundPort}`;
+  if (lanIp) logger.info(`[panel] IP LAN terdeteksi: ${lanIp}`);
 
   const iconPath = path.join(rendererDir, 'icon.png');
   mainWindow = new BrowserWindow({

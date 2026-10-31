@@ -13,6 +13,7 @@ const { getFirewallStatus, ensureFirewallRules } = require('./firewall');
 const { isPlainObject, safeStreamName } = require('./util');
 
 const COOKIE_NAME = 'dle_panel';
+const DEVICE_COOKIE = 'dle_device';
 const MAX_QR_TEXT = 512;
 
 function timingSafeEqual(a, b) {
@@ -92,6 +93,8 @@ function createPanel({
   openPath,
   logFile = '',
   logger = console,
+  devices = null,
+  lan = { enabled: false, getState: null, onChange: null },
 }) {
   if (!token || typeof token !== 'string') {
     throw new Error('Panel token wajib diisi');
@@ -102,24 +105,57 @@ function createPanel({
   app.set('trust proxy', false);
 
   let boundPort = config.panel.port;
-  const allowedHosts = () => [
-    `127.0.0.1:${boundPort}`,
-    `localhost:${boundPort}`,
-    `[::1]:${boundPort}`,
-  ];
+  let lanEnabled = Boolean(lan && lan.enabled);
+
+  const lanHostList = () => {
+    if (!lanEnabled || typeof lan.listHosts !== 'function') return [];
+    try {
+      const list = lan.listHosts();
+      return Array.isArray(list) ? list.filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const allowedHosts = () => {
+    const hosts = new Set([
+      `127.0.0.1:${boundPort}`,
+      `localhost:${boundPort}`,
+      `[::1]:${boundPort}`,
+    ]);
+    if (lanEnabled) {
+      for (const ip of lanHostList()) hosts.add(`${ip}:${boundPort}`);
+      const hostname = os.hostname().toLowerCase();
+      hosts.add(`${hostname}:${boundPort}`);
+      hosts.add(`${hostname}.local:${boundPort}`);
+    }
+    return hosts;
+  };
 
   app.use((req, res, next) => {
+    // The media ports live on a different origin than the panel, so the CSP has
+    // to name whichever host the page was actually served from.
+    const requestHost = String(req.headers.host || '').replace(/:\d+$/, '').toLowerCase();
+    const mediaHosts = [`http://${requestHost}:*`, `ws://${requestHost}:*`];
+    if (!mediaHosts.some((entry) => entry.includes('127.0.0.1'))) {
+      mediaHosts.push('http://127.0.0.1:*', 'ws://127.0.0.1:*');
+    }
+
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'no-referrer');
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    // COOP hanya berarti di origin tepercaya; di HTTP LAN header ini diabaikan
+    // browser dan hanya memunculkan peringatan konsol.
+    if (['127.0.0.1', 'localhost', '[::1]', '::1'].includes(requestHost)) {
+      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    }
     res.setHeader(
       'Content-Security-Policy',
       [
         "default-src 'self'",
         "img-src 'self' data: blob:",
         "media-src 'self' blob:",
-        "connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:*",
+        `connect-src 'self' ${mediaHosts.join(' ')}`,
         "style-src 'self' 'unsafe-inline'",
         "script-src 'self'",
         "frame-src 'none'",
@@ -132,22 +168,31 @@ function createPanel({
     next();
   });
 
-  // Reject DNS-rebinding attempts: the Host header must be loopback.
+  // Reject DNS-rebinding attempts: the Host header must be one we bound to.
   app.use((req, res, next) => {
     const host = String(req.headers.host || '').toLowerCase();
-    if (!allowedHosts().includes(host)) {
+    if (!allowedHosts().has(host)) {
       res.status(421).type('text/plain').send('Host tidak diizinkan');
       return;
     }
     next();
   });
 
-  const isAuthed = (req) => {
+  const isPanelAuthed = (req) => {
     const header = req.headers['x-panel-token'];
     if (typeof header === 'string' && timingSafeEqual(header, token)) return true;
     const cookie = readCookie(req.headers.cookie, COOKIE_NAME);
     return Boolean(cookie) && timingSafeEqual(cookie, token);
   };
+
+  const deviceFromRequest = (req) => {
+    if (!devices) return null;
+    const cookie = readCookie(req.headers.cookie, DEVICE_COOKIE);
+    if (!cookie) return null;
+    return devices.verify(cookie);
+  };
+
+  const isAuthed = (req) => isPanelAuthed(req) || Boolean(deviceFromRequest(req));
 
   const requireAuth = (req, res, next) => {
     if (isAuthed(req)) {
@@ -155,6 +200,15 @@ function createPanel({
       return;
     }
     res.status(401).json({ success: false, error: 'Tidak terautentikasi' });
+  };
+
+  // Actions that touch the host machine stay on the desktop panel token.
+  const requirePanel = (req, res, next) => {
+    if (isPanelAuthed(req)) {
+      next();
+      return;
+    }
+    res.status(403).json({ success: false, error: 'Hanya dari aplikasi desktop' });
   };
 
   const requireJson = (req, res, next) => {
@@ -193,7 +247,7 @@ function createPanel({
       return;
     }
 
-    if (!isAuthed(req)) {
+    if (!isPanelAuthed(req)) {
       res
         .status(403)
         .type('text/plain')
@@ -205,15 +259,82 @@ function createPanel({
     res.sendFile(path.join(rendererDir, 'index.html'));
   });
 
-  app.use(requireAuth);
+  app.get('/pair', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.sendFile(path.join(rendererDir, 'pair.html'));
+  });
 
+  // Aset UI (html/js/css/ikon) tidak berisi rahasia dan harus bisa dimuat
+  // halaman pairing sebelum ada sesi. Semua data tetap di balik requireAuth.
   app.use(
     express.static(rendererDir, {
       index: false,
       dotfiles: 'deny',
-      maxAge: '1h',
+      // Revalidate tiap muat: setelah update aplikasi, app.js lama tidak boleh
+      // tertinggal di cache browser sampai satu jam.
+      maxAge: 0,
+      etag: true,
     }),
   );
+
+  // Pairing sendiri belum punya sesi, jadi dipasang sebelum requireAuth.
+  app.post(
+    '/api/pair',
+    express.json({ limit: 4096 }),
+    (req, res) => {
+      if (!devices) {
+        res.status(501).json({ success: false, error: 'Pairing tidak tersedia' });
+        return;
+      }
+      if (!lanEnabled) {
+        res.status(403).json({ success: false, error: 'Akses dari HP belum diaktifkan' });
+        return;
+      }
+
+      const body = isPlainObject(req.body) ? req.body : {};
+      const code = String(body.code || '').replace(/\D/g, '').slice(0, 6);
+      if (code.length !== 6) {
+        res.status(400).json({ success: false, error: 'Kode harus 6 angka' });
+        return;
+      }
+
+      const result = devices.claim(code, { name: body.name, ip: req.ip });
+      if (result.error) {
+        const message =
+          result.error === 'terlalu_banyak'
+            ? 'Terlalu banyak percobaan. Coba lagi nanti.'
+            : 'Kode tidak valid atau sudah kedaluwarsa';
+        res.status(result.error === 'terlalu_banyak' ? 429 : 403).json({
+          success: false,
+          error: message,
+          retryAfterMs: result.retryAfterMs || 0,
+        });
+        return;
+      }
+
+      res.setHeader(
+        'Set-Cookie',
+        `${DEVICE_COOKIE}=${encodeURIComponent(result.token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${
+          30 * 24 * 60 * 60
+        }`,
+      );
+      logger.info(`[pair] perangkat terhubung: ${result.device.name} (${result.device.lastIp})`);
+      res.json({ success: true, device: result.device });
+    },
+  );
+
+  // Halaman HP dipasang sebelum requireAuth supaya pengunjung tanpa sesi
+  // diarahkan ke halaman pairing, bukan diberi JSON 401.
+  app.get('/m', (req, res) => {
+    if (!isAuthed(req)) {
+      res.redirect(302, '/pair');
+      return;
+    }
+    res.setHeader('Cache-Control', 'no-store');
+    res.sendFile(path.join(rendererDir, 'index.html'));
+  });
+
+  app.use(requireAuth);
 
   app.use('/api', express.json({ limit: config.panel.maxBodyBytes }));
 
@@ -247,6 +368,101 @@ function createPanel({
     });
   });
 
+  const lanPayload = (ipOverride = '') => {
+    const info = typeof lan.getState === 'function' ? lan.getState() : {};
+    const ip = ipOverride || info.ip || '';
+    return {
+      enabled: lanEnabled,
+      ip,
+      port: boundPort,
+      url: ip ? `http://${ip}:${boundPort}/m` : '',
+      pairUrl: ip ? `http://${ip}:${boundPort}/pair` : '',
+      devices: devices ? devices.list() : [],
+    };
+  };
+
+  app.get('/api/lan', requirePanel, (req, res) => {
+    res.json(lanPayload());
+  });
+
+  app.post(
+    '/api/lan',
+    requirePanel,
+    requireJson,
+    asyncRoute(async (req, res) => {
+      const body = isPlainObject(req.body) ? req.body : {};
+      const enabled = Boolean(body.enabled);
+      const preferredIp = typeof body.ip === 'string' ? body.ip.trim() : '';
+      if (enabled && !lanPayload().ip) {
+        res.status(409).json({ success: false, error: 'IP LAN tidak terdeteksi' });
+        return;
+      }
+
+      lanEnabled = enabled;
+      logger.info(`[panel] akses dari HP: ${enabled ? 'aktif' : 'mati'}`);
+
+      const hosts = typeof lan.listHosts === 'function' ? lan.listHosts() : [];
+      const chosenIp = enabled && preferredIp && hosts.includes(preferredIp) ? preferredIp : '';
+
+      // Balas dulu, baru pindahkan listener. Memindahkan listener menutup
+      // semua koneksi, termasuk koneksi yang sedang membawa balasan ini.
+      res.on('finish', () => {
+        if (typeof lan.onChange !== 'function') return;
+        Promise.resolve(lan.onChange(enabled, preferredIp)).catch((error) => {
+          logger.error('[panel] gagal memindahkan listener:', error.message);
+        });
+      });
+
+      res.json({ success: true, ...lanPayload(chosenIp) });
+    }),
+  );
+
+  app.post('/api/pair/new', requirePanel, requireJson, (req, res) => {
+    if (!devices) {
+      res.status(501).json({ success: false, error: 'Pairing tidak tersedia' });
+      return;
+    }
+    if (!lanEnabled) {
+      res.status(409).json({ success: false, error: 'Aktifkan akses dari HP dulu' });
+      return;
+    }
+    const info = lanPayload();
+    if (!info.pairUrl) {
+      res.status(409).json({ success: false, error: 'IP LAN tidak terdeteksi' });
+      return;
+    }
+    const { code, expiresAt } = devices.createPairCode();
+    res.json({
+      success: true,
+      code,
+      expiresAt,
+      url: info.pairUrl,
+      qr: `${info.pairUrl}#${code}`,
+    });
+  });
+
+  app.get('/api/devices', requirePanel, (req, res) => {
+    res.json({ devices: devices ? devices.list() : [] });
+  });
+
+  app.delete('/api/devices/:id', requirePanel, (req, res) => {
+    if (!devices) {
+      res.status(501).json({ success: false, error: 'Pairing tidak tersedia' });
+      return;
+    }
+    const removed = devices.revoke(String(req.params.id || ''));
+    res.json({ success: true, removed, devices: devices.list() });
+  });
+
+  app.post('/api/devices/revoke-all', requirePanel, requireJson, (req, res) => {
+    if (!devices) {
+      res.status(501).json({ success: false, error: 'Pairing tidak tersedia' });
+      return;
+    }
+    const count = devices.revokeAll();
+    res.json({ success: true, revoked: count, devices: [] });
+  });
+
   app.get('/api/state', (req, res) => {
     res.json(engine.getState());
   });
@@ -268,6 +484,7 @@ function createPanel({
 
   app.get(
     '/api/diagnostics',
+    requirePanel,
     asyncRoute(async (req, res) => {
       const [network, firewall, paths] = await Promise.all([
         detectNetwork({ osModule: os }),
@@ -303,6 +520,7 @@ function createPanel({
         ),
         paths: paths.length,
         engine: engine.getState(),
+        lan: lanPayload(),
       });
     }),
   );
@@ -316,6 +534,7 @@ function createPanel({
 
   app.post(
     '/api/firewall/fix',
+    requirePanel,
     requireJson,
     asyncRoute(async (req, res) => {
       const programs = ['mediamtx.exe', 'ffmpeg.exe', 'dssvcam.exe']
@@ -328,6 +547,7 @@ function createPanel({
 
   app.post(
     '/api/open-logs',
+    requirePanel,
     requireJson,
     asyncRoute(async (req, res) => {
       if (typeof openPath !== 'function') {
@@ -382,8 +602,8 @@ function createPanel({
     const folder = await pickFolder();
     res.json({ folder: folder || null });
   });
-  app.get('/api/select-folder', chooseFolder);
-  app.post('/api/select-folder', chooseFolder);
+  app.get('/api/select-folder', requirePanel, chooseFolder);
+  app.post('/api/select-folder', requirePanel, chooseFolder);
 
   app.post(
     '/api/record/start',
@@ -515,6 +735,12 @@ function createPanel({
     app,
     setBoundPort(port) {
       boundPort = port;
+    },
+    setLan(enabled) {
+      lanEnabled = Boolean(enabled);
+    },
+    isLanEnabled() {
+      return lanEnabled;
     },
   };
 }

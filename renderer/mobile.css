@@ -1,0 +1,290 @@
+/* Tampilan HP. Semua aturan di-scope ke body[data-mode="mobile"] supaya jendela
+   desktop tidak pernah terkena, berapa pun lebar jendelanya. */
+
+body[data-mode='mobile'] {
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: contain;
+}
+
+body[data-mode='mobile'] .app {
+  padding: 0 0 calc(84px + env(safe-area-inset-bottom));
+}
+
+body[data-mode='mobile'] .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px 12px;
+  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+
+body[data-mode='mobile'] .brand {
+  gap: 10px;
+  min-width: 0;
+}
+
+body[data-mode='mobile'] .brand-mark {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+}
+
+body[data-mode='mobile'] .brand h1 {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-mode='mobile'] .byline {
+  display: none;
+}
+
+body[data-mode='mobile'] .tagline {
+  display: none;
+}
+
+/* Metrik panjang tidak muat; IP tetap ditampilkan karena dipakai menyalin tautan. */
+body[data-mode='mobile'] .metrics {
+  grid-column: 1 / -1;
+  order: 3;
+  display: block;
+  padding: 0;
+}
+
+body[data-mode='mobile'] .metric-graph,
+body[data-mode='mobile'] .metric:first-child,
+body[data-mode='mobile'] .metric-label {
+  display: none;
+}
+
+body[data-mode='mobile'] .metric {
+  width: 100%;
+  min-width: 0;
+}
+
+body[data-mode='mobile'] .ip-control {
+  width: 100%;
+}
+
+body[data-mode='mobile'] .ip-select {
+  min-width: 0;
+  width: 100%;
+  font-size: 0.82rem;
+}
+
+body[data-mode='mobile'] .topbar-actions {
+  gap: 6px;
+}
+
+body[data-mode='mobile'] .topbar-actions .status {
+  font-size: 0.72rem;
+  padding: 6px 10px;
+}
+
+body[data-mode='mobile'] .topbar-actions .icon-btn,
+body[data-mode='mobile'] .topbar-actions .ghost-btn {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+body[data-mode='mobile'] #diag-btn {
+  display: none;
+}
+
+body[data-mode='mobile'] .layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+}
+
+body[data-mode='mobile'] .column-main,
+body[data-mode='mobile'] .column-side {
+  display: contents;
+}
+
+body[data-mode='mobile'] .card {
+  padding: 14px;
+  border-radius: 16px;
+}
+
+body[data-mode='mobile'] .card-head {
+  margin-bottom: 12px;
+}
+
+body[data-mode='mobile'] .card-head h2 {
+  font-size: 0.98rem;
+}
+
+body[data-mode='mobile'] .sub,
+body[data-mode='mobile'] .hint {
+  font-size: 0.8rem;
+}
+
+/* Urutan: pratinjau, restream, rekaman, tautan, akses HP. */
+body[data-mode='mobile'] #card-preview {
+  order: 1;
+}
+body[data-mode='mobile'] #card-rs {
+  order: 2;
+}
+body[data-mode='mobile'] #card-rec {
+  order: 3;
+}
+body[data-mode='mobile'] #card-links {
+  order: 4;
+}
+body[data-mode='mobile'] #card-lan {
+  display: none;
+}
+body[data-mode='mobile'] #card-vcam,
+body[data-mode='mobile'] .card.guide,
+body[data-mode='mobile'] #fw-alert,
+body[data-mode='mobile'] #browse-btn {
+  display: none;
+}
+
+body[data-mode='mobile'] .preview {
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+body[data-mode='mobile'] .preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+body[data-mode='mobile'] .preview-tools {
+  display: none;
+}
+
+body[data-mode='mobile'] .standby p {
+  font-size: 0.88rem;
+}
+
+body[data-mode='mobile'] .standby small {
+  font-size: 0.76rem;
+}
+
+/* Target sentuh besar, teks 16px supaya iOS tidak auto-zoom. */
+body[data-mode='mobile'] .input,
+body[data-mode='mobile'] select,
+body[data-mode='mobile'] input[type='text'] {
+  font-size: 16px;
+  min-height: 46px;
+}
+
+body[data-mode='mobile'] .btn,
+body[data-mode='mobile'] .chip {
+  min-height: 46px;
+  font-size: 0.92rem;
+}
+
+body[data-mode='mobile'] .btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+body[data-mode='mobile'] .btn-row .btn-danger {
+  grid-column: 1 / -1;
+}
+
+body[data-mode='mobile'] .link-row {
+  padding: 12px 0;
+}
+
+body[data-mode='mobile'] .link-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+body[data-mode='mobile'] .link-input .btn-qr {
+  grid-column: 2;
+}
+
+body[data-mode='mobile'] .field-row.two {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+body[data-mode='mobile'] .modal-card {
+  width: calc(100vw - 28px);
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+}
+
+body[data-mode='mobile'] .toast {
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  left: 14px;
+  right: 14px;
+  text-align: center;
+}
+
+/* Navigasi bawah: anchor biasa, tanpa state JS tambahan. */
+.mobile-nav {
+  display: none;
+}
+
+body[data-mode='mobile'] .mobile-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+}
+
+body[data-mode='mobile'] .mobile-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 54px;
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+body[data-mode='mobile'] .mobile-nav a:active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+}
+
+body[data-mode='mobile'] .mobile-nav svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (min-width: 760px) and (max-width: 1024px) {
+  body[data-mode='mobile'] .layout {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+}

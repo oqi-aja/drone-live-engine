@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="id" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1220" />
+    <link rel="icon" href="icon.png" type="image/png" />
+    <title>Hubungkan HP · Drone Live Engine</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #070b14;
+        --card: #101a2b;
+        --line: #1e2c44;
+        --text: #e6edf7;
+        --muted: #8fa3bf;
+        --accent: #38bdf8;
+        --danger: #f87171;
+        --ok: #34d399;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+        background: radial-gradient(1200px 600px at 50% -10%, #12233a 0%, var(--bg) 60%);
+        color: var(--text);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+
+      main {
+        width: 100%;
+        max-width: 420px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(160deg, #1b2b45, #0d1728);
+        border: 1px solid var(--line);
+      }
+
+      .mark svg {
+        width: 24px;
+        height: 24px;
+        stroke: var(--accent);
+      }
+
+      h1 {
+        font-size: 1.05rem;
+        margin: 0;
+        letter-spacing: 0.2px;
+      }
+
+      .byline {
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 24px 60px rgba(2, 8, 20, 0.55);
+      }
+
+      p {
+        margin: 0 0 16px;
+        color: var(--muted);
+        line-height: 1.55;
+        font-size: 0.92rem;
+      }
+
+      label {
+        display: block;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      input {
+        width: 100%;
+        padding: 16px;
+        font-size: 1.6rem;
+        letter-spacing: 0.42em;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
+        background: #0b1524;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        outline: none;
+      }
+
+      input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+      }
+
+      button {
+        width: 100%;
+        margin-top: 16px;
+        min-height: 50px;
+        border: 0;
+        border-radius: 14px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #04121f;
+        background: linear-gradient(180deg, #7dd3fc, #38bdf8);
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.55;
+      }
+
+      .note {
+        margin-top: 16px;
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .error {
+        margin-top: 14px;
+        font-size: 0.88rem;
+        color: var(--danger);
+        min-height: 1.2em;
+      }
+
+      .ok {
+        color: var(--ok);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round">
+            <path d="M12 3v6M12 15v6M3 12h6M15 12h6" />
+            <circle cx="12" cy="12" r="3.2" />
+          </svg>
+        </div>
+        <div>
+          <h1>Drone Live Engine</h1>
+          <div class="byline">Hubungkan perangkat · by Oqi</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p>
+          Masukkan <strong>kode 6 angka</strong> yang tampil di aplikasi desktop. Kode berlaku 5 menit dan hanya
+          bisa dipakai sekali.
+        </p>
+
+        <label for="code">Kode pairing</label>
+        <input
+          id="code"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="6"
+          placeholder="000000"
+          aria-describedby="pair-error"
+        />
+
+        <button id="pair-btn" type="button" disabled>Hubungkan</button>
+        <div class="error" id="pair-error" role="status" aria-live="polite"></div>
+
+        <p class="note">
+          Perangkat ini hanya bisa mengontrol restream, rekaman, dan pratinjau. Pengaturan sistem tetap terkunci di
+          aplikasi desktop.
+        </p>
+      </div>
+    </main>
+
+    <script src="pair.js"></script>
+  </body>
+</html>

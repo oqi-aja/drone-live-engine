@@ -9,6 +9,8 @@
   nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="Drone Live Engine HLS"'
   nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="Drone Live Engine WebRTC"'
   nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="Drone Live Engine WebRTC UDP"'
+  nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="Drone Live Engine Panel"'
+  nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="Drone Live Engine app"'
   nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="Drone Live Engine mediamtx.exe"'
   nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="Drone Live Engine ffmpeg.exe"'
   nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="Drone Live Engine dssvcam.exe"'
@@ -22,6 +24,14 @@
   nsExec::ExecToLog 'netsh advfirewall firewall add rule name="Drone Live Engine HLS" dir=in action=allow protocol=TCP localport=8888 profile=any enable=yes'
   nsExec::ExecToLog 'netsh advfirewall firewall add rule name="Drone Live Engine WebRTC" dir=in action=allow protocol=TCP localport=8889 profile=any enable=yes'
   nsExec::ExecToLog 'netsh advfirewall firewall add rule name="Drone Live Engine WebRTC UDP" dir=in action=allow protocol=UDP localport=8189 profile=any enable=yes'
+
+  ; Panel kontrol tetap loopback sampai "Akses dari HP" dinyalakan. Aturan ini
+  ; hanya membuka jalan saat pengguna memilihnya; tanpa aturan ini Windows
+  ; diam-diam memblokir port panel di jaringan.
+  nsExec::ExecToLog 'netsh advfirewall firewall add rule name="Drone Live Engine Panel" dir=in action=allow protocol=TCP localport=3000 profile=any enable=yes'
+  IfFileExists "$INSTDIR\Drone Live Engine.exe" 0 DleSkipApp
+  nsExec::ExecToLog 'netsh advfirewall firewall add rule name="Drone Live Engine app" dir=in action=allow program="$INSTDIR\Drone Live Engine.exe" profile=any enable=yes'
+  DleSkipApp:
 
   IfFileExists "$INSTDIR\resources\mediamtx.exe" 0 DleSkipMtx
   nsExec::ExecToLog 'netsh advfirewall firewall add rule name="Drone Live Engine mediamtx.exe" dir=in action=allow program="$INSTDIR\resources\mediamtx.exe" profile=any enable=yes'

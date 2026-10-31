@@ -46,15 +46,16 @@ folder instalasi.
 5. [Rekaman](#5-rekaman)
 6. [Restream ke YouTube / Facebook / Instagram](#6-restream-ke-youtube--facebook--instagram)
 7. [Menonton siaran: RTSP, HLS, WebRTC](#7-menonton-siaran-rtsp-hls-webrtc)
-8. [Kamera virtual untuk vMix / OBS / Zoom](#8-kamera-virtual-untuk-vmix--obs--zoom)
-9. [Pengaturan tampilan](#9-pengaturan-tampilan)
-10. [Diagnostik dan log](#10-diagnostik-dan-log)
-11. [Port yang dipakai](#11-port-yang-dipakai)
-12. [Masalah umum dan solusinya](#12-masalah-umum-dan-solusinya)
-13. [Update dan uninstall](#13-update-dan-uninstall)
-14. [Menjalankan dari source (untuk pengembang)](#14-menjalankan-dari-source-untuk-pengembang)
-15. [Keamanan](#15-keamanan)
-16. [Lisensi dan kredit](#16-lisensi-dan-kredit)
+8. [Mengontrol dari HP](#8-mengontrol-dari-hp)
+9. [Kamera virtual untuk vMix / OBS / Zoom](#9-kamera-virtual-untuk-vmix--obs--zoom)
+10. [Pengaturan tampilan](#10-pengaturan-tampilan)
+11. [Diagnostik dan log](#11-diagnostik-dan-log)
+12. [Port yang dipakai](#12-port-yang-dipakai)
+13. [Masalah umum dan solusinya](#13-masalah-umum-dan-solusinya)
+14. [Update dan uninstall](#14-update-dan-uninstall)
+15. [Menjalankan dari source (untuk pengembang)](#15-menjalankan-dari-source-untuk-pengembang)
+16. [Keamanan](#16-keamanan)
+17. [Lisensi dan kredit](#17-lisensi-dan-kredit)
 
 ---
 
@@ -87,7 +88,7 @@ memasang Node.js atau program lain.
 > berkasnya terlihat seperti `Drone.Live.Engine-0.1.5-setup.exe`. Isinya sama.
 
 **Dari source:** jalankan `npm run dist`, lalu ambil installer dari folder
-`dist\`. (Lihat [bagian 14](#14-menjalankan-dari-source-untuk-pengembang).)
+`dist\`. (Lihat [bagian 15](#15-menjalankan-dari-source-untuk-pengembang).)
 
 ### 2.2 Menjalankan installer
 
@@ -140,8 +141,10 @@ installer lagi. Aplikasi ini menjalankan proses lokal (`mediamtx.exe`,
 4. Tautan di kartu **Tautan Koneksi** otomatis mengikuti IP yang dipilih.
 
 > Panel kontrol hanya terbuka di laptop ini (`127.0.0.1`) dan dilindungi token
-> per sesi. Perangkat lain tidak bisa membuka panel, tetapi tetap bisa mengambil
-> siaran lewat port media (RTSP/HLS/WebRTC).
+> per sesi. Perangkat lain tetap bisa mengambil siaran lewat port media
+> (RTSP/HLS/WebRTC). Untuk mengontrol dari HP, lihat
+> [bagian 8](#8-mengontrol-dari-hp) — akses itu harus dinyalakan dulu dan tetap
+> tertutup selama tidak dipakai.
 
 ---
 
@@ -268,7 +271,57 @@ lalu OK. Di vMix: **Add Input → Stream → RTSP**.
 
 ---
 
-## 8. Kamera virtual untuk vMix / OBS / Zoom
+## 8. Mengontrol dari HP
+
+Panel bisa dibuka dari HP di Wi-Fi yang sama. Akses ini **mati secara default** —
+selama tidak dinyalakan, panel hanya ada di laptop.
+
+### 8.1 Menyalakan akses
+
+1. Di laptop, buka kartu **Akses dari HP**.
+2. Tekan **Aktifkan Akses HP**. Status berubah menjadi **Aktif** dan alamat
+   `http://<IP>:3000/m` muncul.
+3. Tekan **Buat Kode Pairing**. Muncul kode 6 angka beserta QR.
+4. Dari HP: pindai QR (atau buka `http://<IP>:3000/pair`), masukkan kode, lalu
+   tekan **Hubungkan**. Kode berlaku 5 menit dan hanya bisa dipakai sekali.
+5. HP langsung masuk ke tampilan ringkas: pratinjau, restream, rekaman, dan
+   tautan.
+
+### 8.2 Yang bisa dan tidak bisa dilakukan HP
+
+| Dari HP | Tetap di laptop |
+| --- | --- |
+| Melihat pratinjau dan status | Memperbaiki firewall |
+| Mulai/stop restream | Membuka folder log |
+| Mulai/stop rekaman | Memilih folder rekaman |
+| Menyalin tautan dan QR | Diagnostik sistem |
+| Memilih kamera/stream | Menyalakan/mematikan akses HP |
+|  | Mencabut perangkat lain |
+
+HP memakai **sesi perangkat** sendiri (cookie `HttpOnly`, berlaku 30 hari),
+bukan token panel laptop. Token panel tidak pernah dikirim ke HP.
+
+### 8.3 Mencabut perangkat
+
+Daftar **Perangkat terhubung** di kartu **Akses dari HP** menampilkan nama, IP,
+dan waktu terakhir aktif. Tekan **Cabut** untuk memutus satu perangkat; sesinya
+langsung mati pada permintaan berikutnya. Mematikan **Akses HP** juga menutup
+listener LAN seketika.
+
+### 8.4 Catatan
+
+- HP dan laptop harus di Wi-Fi yang sama tanpa *client isolation* (lihat
+  [bagian 4](#4-menghubungkan-drone-dji-fly)).
+- Akses memakai HTTP biasa di jaringan lokal. Jangan dinyalakan di Wi-Fi publik
+  atau kafe.
+- Kalau HP tidak bisa membuka alamatnya, pastikan IP Sistem benar, aturan
+  firewall ada (installer sudah menambahkannya), dan HP tidak memakai VPN.
+- Folder rekaman dipilih di laptop; HP hanya bisa memulai/menghentikan rekaman
+  ke folder yang sudah ditentukan.
+
+---
+
+## 9. Kamera virtual untuk vMix / OBS / Zoom
 
 Kamera virtual membuat aplikasi yang hanya mengenal kamera Windows (Zoom, Teams,
 Google Meet) bisa memakai siaran drone.
@@ -287,7 +340,7 @@ Catatan:
 
 ---
 
-## 9. Pengaturan tampilan
+## 10. Pengaturan tampilan
 
 - **ID / EN** — ganti bahasa antarmuka (Indonesia/Inggris).
 - Ikon bulan/matahari — tema gelap/terang.
@@ -299,7 +352,7 @@ Catatan:
 
 ---
 
-## 10. Diagnostik dan log
+## 11. Diagnostik dan log
 
 Klik ikon garis detak di kanan atas untuk membuka **Diagnostik**:
 
@@ -326,7 +379,7 @@ melaporkan masalah koneksi.
 
 ---
 
-## 11. Port yang dipakai
+## 12. Port yang dipakai
 
 | Fungsi | Port | Protokol | Terbuka ke |
 | --- | --- | --- | --- |
@@ -336,7 +389,7 @@ melaporkan masalah koneksi.
 | WebRTC | 8889 | TCP | LAN |
 | WebRTC ICE | 8189 | UDP | LAN |
 | API MediaMTX | 9997 | TCP | Hanya `127.0.0.1` |
-| Panel kontrol | 3000 (otomatis) | TCP | Hanya `127.0.0.1` |
+| Panel kontrol | 3000 (otomatis) | TCP | `127.0.0.1`; LAN hanya saat **Akses HP** aktif |
 | Relay kamera virtual | 16666 | TCP | Hanya `127.0.0.1` |
 
 Jika port 1935 dipakai aplikasi lain, tutup aplikasi tersebut — port ini tidak
@@ -344,7 +397,7 @@ bisa diganti tanpa mengubah konfigurasi.
 
 ---
 
-## 12. Masalah umum dan solusinya
+## 13. Masalah umum dan solusinya
 
 | Gejala | Penyebab umum | Solusi |
 | --- | --- | --- |
@@ -364,7 +417,7 @@ Jika masalah berlanjut, kirimkan `app.log` beserta tangkapan layar panel
 
 ---
 
-## 13. Update dan uninstall
+## 14. Update dan uninstall
 
 ### Update
 
@@ -389,7 +442,7 @@ Aturan firewall yang dibuat installer akan dihapus saat uninstall.
 
 ---
 
-## 14. Menjalankan dari source (untuk pengembang)
+## 15. Menjalankan dari source (untuk pengembang)
 
 Prasyarat: Node.js 18+ dan biner pihak ketiga di folder `resources/`.
 
@@ -427,6 +480,7 @@ src/
   firewall.js  pemeriksaan dan perbaikan aturan Windows Firewall
   logger.js    log konsol + berkas (rotasi 2 MB)
   config.js    branding, port, profil kualitas
+  devices.js   kode pairing + sesi perangkat untuk akses dari HP
   util.js      validasi path/URL dan helper
 renderer/      UI (HTML/CSS/JS tanpa framework, tanpa CDN)
 resources/     mediamtx.yml + biner pihak ketiga
@@ -440,10 +494,19 @@ resolusi kamera virtual). Jika port diubah, sesuaikan juga
 
 ---
 
-## 15. Keamanan
+## 16. Keamanan
 
 - Panel kontrol hanya mendengarkan di `127.0.0.1` dan memakai token acak per
   sesi (cookie `HttpOnly`, `SameSite=Strict`).
+- **Akses dari HP** mati secara default. Saat dinyalakan, listener LAN memakai
+  daftar `Host` yang ketat (anti DNS rebinding) dan hanya menerima sesi
+  perangkat hasil pairing.
+- Sesi perangkat dibuat dari kode 6 angka sekali pakai (berlaku 5 menit,
+  maksimal 10 percobaan gagal per 10 menit per IP). Yang disimpan di
+  `devices.json` hanya hash SHA-256 token, bukan tokennya.
+- Sesi perangkat hanya boleh melihat status, pratinjau, restream, rekaman,
+  kamera virtual, tautan, dan QR. Tindakan yang menyentuh laptop (firewall,
+  log, folder, diagnostik, akses HP, daftar perangkat) menolak sesi perangkat.
 - Setiap permintaan divalidasi terhadap `Host` dan `Origin` untuk mencegah DNS
   rebinding dan CSRF.
 - Renderer berjalan dengan `contextIsolation: true`, `nodeIntegration: false`,
@@ -456,7 +519,7 @@ resolusi kamera virtual). Jika port diubah, sesuaikan juga
 
 ---
 
-## 16. Lisensi dan kredit
+## 17. Lisensi dan kredit
 
 MIT — bebas dipakai, dimodifikasi, dan didistribusikan. Tidak ada kunci
 aktivasi dan tidak ada pembatasan jumlah perangkat.

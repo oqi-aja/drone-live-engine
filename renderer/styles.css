@@ -1219,3 +1219,81 @@ select.input {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ------------------------------------------------------- akses dari HP */
+
+.lan-url {
+  margin: 12px 0 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-input);
+  border: 1px solid var(--border);
+  color: var(--accent-text);
+  overflow-wrap: anywhere;
+}
+
+.pair-box {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  border: 1px dashed var(--border-strong);
+}
+
+.pair-code {
+  font-size: 1.9rem;
+  letter-spacing: 0.36em;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.pair-box img {
+  width: 168px;
+  height: 168px;
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px;
+}
+
+.device-list {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.device-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+}
+
+.device-meta {
+  min-width: 0;
+}
+
+.device-name {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.device-sub {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.device-empty {
+  font-size: 0.8rem;
+  color: var(--muted);
+}

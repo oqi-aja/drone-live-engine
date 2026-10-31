@@ -127,6 +127,26 @@ const translations = {
     diag_note:
       'Jika DJI Fly tetap gagal, pastikan HP/RC dan laptop berada di jaringan yang sama, IP yang dipilih benar, dan jaringan tidak memakai isolasi antar-klien (coba hotspot HP).',
     toast_fw_fixed: 'Aturan firewall diperbarui',
+    lan_title: 'Akses dari HP',
+    lan_hint:
+      'Nyalakan untuk mengontrol siaran dari HP di Wi-Fi yang sama. Panel tetap tertutup selama tombol ini mati.',
+    lan_enable: 'Aktifkan Akses HP',
+    lan_disable: 'Matikan Akses HP',
+    lan_active: 'Aktif',
+    lan_pair: 'Buat Kode Pairing',
+    lan_pair_hint: 'Pindai QR ini dari HP, lalu masukkan kode 6 angka.',
+    lan_expire: 'Kode berlaku sampai',
+    lan_devices: 'Perangkat terhubung',
+    lan_no_devices: 'Belum ada perangkat yang terhubung.',
+    lan_revoke: 'Cabut',
+    toast_lan_on: 'Akses dari HP aktif',
+    toast_lan_off: 'Akses dari HP dimatikan',
+    toast_pair_created: 'Kode pairing dibuat',
+    toast_device_revoked: 'Perangkat dicabut',
+    nav_preview: 'Siaran',
+    nav_restream: 'Restream',
+    nav_record: 'Rekam',
+    nav_links: 'Tautan',
   },
   en: {
     tagline: 'Local broadcast engine for drones',
@@ -249,6 +269,25 @@ const translations = {
     diag_note:
       'If DJI Fly still fails, make sure the phone/RC and the laptop are on the same network, the selected IP is correct, and the network does not isolate clients (try a phone hotspot).',
     toast_fw_fixed: 'Firewall rules updated',
+    lan_title: 'Phone Access',
+    lan_hint: 'Turn this on to control the broadcast from a phone on the same Wi-Fi. The panel stays closed while it is off.',
+    lan_enable: 'Enable Phone Access',
+    lan_disable: 'Disable Phone Access',
+    lan_active: 'On',
+    lan_pair: 'Create Pairing Code',
+    lan_pair_hint: 'Scan this QR from the phone, then enter the 6-digit code.',
+    lan_expire: 'Code valid until',
+    lan_devices: 'Connected devices',
+    lan_no_devices: 'No device connected yet.',
+    lan_revoke: 'Revoke',
+    toast_lan_on: 'Phone access enabled',
+    toast_lan_off: 'Phone access disabled',
+    toast_pair_created: 'Pairing code created',
+    toast_device_revoked: 'Device revoked',
+    nav_preview: 'Live',
+    nav_restream: 'Restream',
+    nav_record: 'Record',
+    nav_links: 'Links',
   },
 };
 
@@ -283,6 +322,7 @@ const state = {
   mediaMissingWarned: false,
   mediaError: '',
   cameraSignature: '',
+  lan: { enabled: false, devices: [], url: '' },
 };
 
 let toastTimer = null;
@@ -296,6 +336,9 @@ const t = (key) => translations[state.lang][key] || translations.id[key] || key;
 /* -------------------------------------------------------------------- setup */
 
 function boot() {
+  if (window.location.pathname === '/m') {
+    document.body.dataset.mode = 'mobile';
+  }
   applyTheme();
   applyLanguage();
   bindUi();
@@ -306,6 +349,11 @@ function boot() {
   setInterval(pollBitrate, 1000);
   setInterval(refreshNetwork, 15000);
   checkFirewall();
+  // Daftar perangkat diperbarui sendiri supaya HP yang baru pairing langsung
+  // terlihat di panel desktop tanpa perlu muat ulang.
+  setInterval(() => {
+    if (!isMobileMode() && state.lan.enabled) loadLan();
+  }, 4000);
 }
 
 async function initialise() {
@@ -330,6 +378,7 @@ async function initialise() {
   await loadAudioDevices();
   await pollState();
   await connectPreview();
+  if (!isMobileMode()) loadLan();
 }
 
 function request(path, { method = 'GET', body, timeoutMs = 8000 } = {}) {
@@ -553,6 +602,141 @@ async function fixFirewall() {
   }
 }
 
+/* ------------------------------------------------------------ akses dari HP */
+
+const isMobileMode = () => document.body.dataset.mode === 'mobile';
+
+let lanBusy = false;
+
+function timeAgo(timestamp) {
+  const seconds = Math.max(0, Math.round((Date.now() - Number(timestamp || 0)) / 1000));
+  if (seconds < 60) return 'baru saja';
+  if (seconds < 3600) return `${Math.round(seconds / 60)} menit lalu`;
+  if (seconds < 86400) return `${Math.round(seconds / 3600)} jam lalu`;
+  return `${Math.round(seconds / 86400)} hari lalu`;
+}
+
+function renderDevices(list) {
+  const box = $('#device-list');
+  if (!box) return;
+  box.textContent = '';
+
+  if (!list.length) {
+    const empty = document.createElement('p');
+    empty.className = 'device-empty';
+    empty.textContent = t('lan_no_devices');
+    box.appendChild(empty);
+    return;
+  }
+
+  for (const device of list) {
+    const row = document.createElement('div');
+    row.className = 'device-row';
+
+    const meta = document.createElement('div');
+    meta.className = 'device-meta';
+
+    const name = document.createElement('span');
+    name.className = 'device-name';
+    name.textContent = device.name;
+
+    const sub = document.createElement('span');
+    sub.className = 'device-sub';
+    sub.textContent = `${device.lastIp || '-'} · ${timeAgo(device.lastSeenAt)}`;
+
+    meta.append(name, sub);
+
+    const revoke = document.createElement('button');
+    revoke.type = 'button';
+    revoke.className = 'btn btn-ghost';
+    revoke.textContent = t('lan_revoke');
+    revoke.addEventListener('click', () => revokeDevice(device.id));
+
+    row.append(meta, revoke);
+    box.appendChild(row);
+  }
+}
+
+function renderLan(info) {
+  state.lan = info || { enabled: false, devices: [], url: '' };
+  const enabled = Boolean(state.lan.enabled);
+
+  const status = $('#lan-status');
+  if (status) {
+    status.classList.toggle('on', enabled);
+    const label = status.querySelector('span');
+    if (label) label.textContent = enabled ? t('lan_active') : t('off');
+  }
+
+  const button = $('#lan-btn');
+  if (button) button.textContent = enabled ? t('lan_disable') : t('lan_enable');
+
+  const body = $('#lan-body');
+  if (body) body.hidden = !enabled;
+
+  const url = $('#lan-url');
+  if (url) url.textContent = state.lan.url || '';
+
+  renderDevices(Array.isArray(state.lan.devices) ? state.lan.devices : []);
+}
+
+async function loadLan() {
+  if (isMobileMode()) return;
+  try {
+    renderLan(await request('/api/lan'));
+  } catch {
+    renderLan({ enabled: false, devices: [], url: '' });
+  }
+}
+
+async function toggleLan() {
+  if (lanBusy) return;
+  lanBusy = true;
+  const button = $('#lan-btn');
+  if (button) button.disabled = true;
+
+  try {
+    const info = await request('/api/lan', {
+      method: 'POST',
+      body: { enabled: !state.lan.enabled, ip: state.ip },
+      timeoutMs: 15000,
+    });
+    renderLan(info);
+    toast(info.enabled ? t('toast_lan_on') : t('toast_lan_off'), 'ok');
+  } catch (error) {
+    toast(error.message, 'error');
+  } finally {
+    lanBusy = false;
+    if (button) button.disabled = false;
+  }
+}
+
+async function createPairCode() {
+  try {
+    const data = await request('/api/pair/new', { method: 'POST', body: {} });
+    const box = $('#pair-box');
+    box.hidden = false;
+    $('#pair-code').textContent = data.code;
+    $('#pair-qr').src = `/api/qr?text=${encodeURIComponent(data.qr || data.url || '')}`;
+    $('#pair-expire').textContent = `${t('lan_expire')} ${new Date(
+      data.expiresAt,
+    ).toLocaleTimeString()}`;
+    toast(t('toast_pair_created'), 'ok');
+  } catch (error) {
+    toast(error.message, 'error');
+  }
+}
+
+async function revokeDevice(id) {
+  try {
+    const data = await request(`/api/devices/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    renderDevices(Array.isArray(data.devices) ? data.devices : []);
+    toast(t('toast_device_revoked'), 'ok');
+  } catch (error) {
+    toast(error.message, 'error');
+  }
+}
+
 /* -------------------------------------------------------------------- links */
 
 function updateLinks() {
@@ -759,7 +943,7 @@ async function connectPreview() {
     if (generation !== previewGeneration) return;
 
     const response = await fetch(
-      `http://127.0.0.1:${state.config.ports.webrtc}/${state.stream}/whep`,
+      `http://${window.location.hostname}:${state.config.ports.webrtc}/${state.stream}/whep`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/sdp' },
@@ -1461,6 +1645,11 @@ function bindUi() {
   $('#rs-stop').addEventListener('click', () => applyRestream({ 1: false, 2: false }));
 
   $('#vcam-btn').addEventListener('click', toggleVcam);
+
+  const lanBtn = $('#lan-btn');
+  if (lanBtn) lanBtn.addEventListener('click', toggleLan);
+  const pairNew = $('#pair-new');
+  if (pairNew) pairNew.addEventListener('click', createPairCode);
 
   ['#rs-url1', '#rs-key1', '#rs-url2', '#rs-key2'].forEach((selector) => {
     $(selector).addEventListener('change', persistInputs);
