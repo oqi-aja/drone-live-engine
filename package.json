@@ -1,6 +1,6 @@
 {
   "name": "drone-live-engine",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Local drone livestream engine with phone control: RTMP ingest, recording, restream, virtual camera",
   "main": "src/main.js",
   "author": "Oqi",
@@ -23,7 +23,7 @@
   "build": {
     "appId": "com.example.dronelive",
     "productName": "Drone Live Engine",
-    "copyright": "Copyright Ã‚Â© 2026 Oqi",
+    "copyright": "Copyright Ãƒâ€šÃ‚Â© 2026 Oqi",
     "files": [
       "src/**/*",
       "renderer/**/*",

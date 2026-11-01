@@ -335,6 +335,19 @@ let toastTimer = null;
 let previewPeer = null;
 let previewTimer = null;
 let previewGeneration = 0;
+// Pantau kebuntuan frame: penerbit RTMP yang re-publish membuat mediamtx
+// menutup sesinya, tapi koneksi WebRTC kadang tetap "connected" tanpa frame
+// baru — video terasa beku. Pemantau ini memaksa penyambungan ulang cepat.
+let previewWatch = null;
+let previewNoFrames = 0;
+let previewFailTry = 0;
+const PREVIEW_BACKOFF_MAX = 5000;
+const PREVIEW_RETRY_BASE = 1200;
+const PREVIEW_STALL_LIMIT = 2;
+// Buffer jitter kecil pada receiver (detik). Chrome memutar dengan jeda nol
+// secara default, jadi guncangan jaringan kecil pun langsung tampak sebagai
+// patah; dengan jeda 0,25 s frame tetap hadir teratur dan latensi tetap ringan.
+const PREVIEW_PLAYOUT_DELAY = 0.25;
 let rsBusy = false;
 
 const t = (key) => translations[state.lang][key] || translations.id[key] || key;
@@ -887,15 +900,68 @@ function waitForIce(peer, timeoutMs) {
 
 function schedulePreviewRetry() {
   clearTimeout(previewTimer);
+  previewFailTry += 1;
+  // 4 percobaan pertama tetap cepat — penerbit RTMP DJI biasanya kembali
+  // dalam hitungan detik setelah re-publish. Setelah itu mundur bertahap
+  // supaya tidak membuka koneksi tanpa gunakan terus-menerus.
+  const delay = previewFailTry <= 4
+    ? PREVIEW_RETRY_BASE
+    : Math.min(PREVIEW_RETRY_BASE * 2 ** Math.min(previewFailTry - 4, 3), PREVIEW_BACKOFF_MAX);
   previewTimer = setTimeout(() => {
     if (!state.config) return schedulePreviewRetry();
     connectPreview();
-  }, 5000);
+  }, delay);
+}
+
+function stopPreviewWatch() {
+  if (previewWatch) {
+    clearInterval(previewWatch);
+    previewWatch = null;
+  }
+  previewNoFrames = 0;
+}
+
+function startPreviewWatch(peer, generation) {
+  stopPreviewWatch();
+  previewWatch = setInterval(async () => {
+    if (generation !== previewGeneration || previewPeer !== peer) return stopPreviewWatch();
+    if (peer.connectionState !== 'connected') return;
+    try {
+      const stats = await peer.getStats();
+      if (generation !== previewGeneration) return;
+      let video = null;
+      stats.forEach((report) => {
+        if (report.type === 'inbound-rtp' && report.kind === 'video') video = report;
+      });
+      if (!video || (video.framesDecoded || 0) === 0) return;
+      if (video.framesPerSecond > 0) {
+        previewNoFrames = 0;
+        return;
+      }
+      previewNoFrames += 1;
+      if (previewNoFrames >= PREVIEW_STALL_LIMIT) {
+        // Koneksi "connected" tapi tidak ada frame dekode — penerbit RTMP hilang
+        // atau media berhenti. Tutup agar retry cepat yang menjalankan.
+        stopPreviewWatch();
+        if (previewPeer === peer) previewPeer = null;
+        try {
+          peer.close();
+        } catch {
+          /* sudah tertutup */
+        }
+        $('#standby').classList.remove('hidden');
+        schedulePreviewRetry();
+      }
+    } catch {
+      /* peer sudah tertutup */
+    }
+  }, 1000);
 }
 
 function teardownPreview() {
   previewGeneration += 1;
   clearTimeout(previewTimer);
+  stopPreviewWatch();
   if (previewPeer) {
     try {
       previewPeer.close();
@@ -926,6 +992,13 @@ async function connectPreview() {
     const remote = new MediaStream();
     peer.addEventListener('track', (event) => {
       if (generation !== previewGeneration) return;
+      // Jeda pemutaran kecil menahan guncangan jaringan; tanpa ini Chrome
+      // memutar nol jeda sehingga WiFi yang sumbang langsung patah.
+      try {
+        event.receiver.playoutDelayHint = PREVIEW_PLAYOUT_DELAY;
+      } catch {
+        /* browser lain tidak punya hint ini */
+      }
       const [incoming] = event.streams;
       if (!incoming) return;
       incoming.getTracks().forEach((track) => {
@@ -961,6 +1034,9 @@ async function connectPreview() {
     const answer = await response.text();
     if (generation !== previewGeneration) return;
     await peer.setRemoteDescription({ type: 'answer', sdp: answer });
+    // Tersambung: reset sisa mundur, mulai pantau kebuntuan frame.
+    previewFailTry = 0;
+    startPreviewWatch(peer, generation);
   } catch {
     if (generation !== previewGeneration) return;
     if (previewPeer) {
