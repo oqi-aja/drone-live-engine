@@ -15,3 +15,7 @@ resources/*.lib
 # Local build artefacts
 *.obj
 *.ilk
+
+# Website tooling: raw asset cache & design-skill workbench (not part of the site)
+/assets/
+/.taste-skill/
