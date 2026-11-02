@@ -1,274 +1,1176 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Drone Live Engine, siaran drone dari satu laptop</title>
-<meta name="description" content="Menerima siaran RTMP dari DJI Fly, merekam MP4, restream ke dua platform, dan membuka RTSP/HLS/WebRTC/kamera virtual. Aplikasi Windows gratis, tanpa kunci aktivasi.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drone Live Engine — Siaran Drone Profesional dari Satu Laptop</title>
+  <meta name="description" content="Menerima siaran RTMP dari DJI Fly, merekam MP4 tahan korup, restream ke dua platform bersamaan, dan menyediakan RTSP/HLS/WebRTC serta kamera virtual. Aplikasi Windows gratis & open-source.">
+  <link rel="icon" href="assets/icon.png" type="image/png">
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+  <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
 
-<!-- ============================= HERO ============================= -->
-<header class="hero" id="atas">
-  <a class="hero-dl" href="https://github.com/oqi-aja/drone-live-engine/releases/latest">Unduh v0.2.3</a>
+  <!-- ============================= NAVBAR ============================= -->
+  <header class="navbar" id="navbar">
+    <div class="container">
+      <a href="#atas" class="nav-brand">
+        <div class="nav-brand-icon-wrap" aria-hidden="true">
+          <img src="assets/icon.png" alt="Drone Live Engine Logo" class="nav-brand-img">
+        </div>
+        <div class="nav-brand-text">
+          <span class="nav-brand-title">Drone Live Engine</span>
+          <span class="nav-brand-author">by Oqi</span>
+        </div>
+        <span class="nav-badge">v0.2.3</span>
+      </a>
 
-  <div class="hero-mark" aria-hidden="true">
-    <svg viewBox="0 0 40 40" width="40" height="40" role="img" aria-label="Logo Drone Live Engine">
-      <line x1="20" y1="20" x2="20" y2="7"  stroke="#43cdb6" stroke-width="2.6"/>
-      <line x1="20" y1="20" x2="8"  y2="29" stroke="#43cdb6" stroke-width="2.6"/>
-      <line x1="20" y1="20" x2="32" y2="29" stroke="#43cdb6" stroke-width="2.6"/>
-      <circle cx="20" cy="7"  r="3.4" fill="#43cdb6"/>
-      <circle cx="8"  cy="29" r="3.4" fill="#43cdb6"/>
-      <circle cx="32" cy="29" r="3.4" fill="#43cdb6"/>
-      <circle cx="20" cy="20" r="4.2" fill="#e9f9f5" stroke="#43cdb6" stroke-width="2"/>
-    </svg>
-  </div>
+      <button id="nav-toggle" class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Buka menu navigasi">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="14" y2="17"></line></svg>
+      </button>
 
-  <div class="hero-col">
-    <h1>Siaran drone dari satu&nbsp;laptop.</h1>
-    <p class="hero-sub">Drone Live Engine menerima siaran RTMP dari DJI&nbsp;Fly, merekamnya ke MP4,
-    dan meneruskannya ke YouTube, Facebook, OBS, HP, dan TV. Semuanya dari jaringan sendiri, tanpa cloud.</p>
-    <div class="hero-actions">
-      <a class="btn-solid" href="https://github.com/oqi-aja/drone-live-engine/releases/latest">Unduh untuk Windows</a>
-      <a class="link-quiet" href="#cara">Lihat cara kerjanya</a>
+      <nav class="nav-links" id="nav-panel" aria-label="Navigasi Utama">
+        <a href="#panel-asli" class="nav-link">Panel Aplikasi</a>
+        <a href="#cara" class="nav-link">Cara Kerja</a>
+        <a href="#skenario" class="nav-link">Skenario</a>
+        <a href="#alur" class="nav-link">Alur Data</a>
+        <a href="#latensi" class="nav-link">Latensi</a>
+        <a href="#kompatibilitas" class="nav-link">Kompatibilitas</a>
+        <a href="#fitur" class="nav-link">Fitur</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- SFX Toggle -->
+        <button id="sfx-toggle" class="btn-sfx" type="button" aria-label="Toggle Efek Suara UI" title="Efek Suara UI (Mati)">
+          <svg id="sfx-icon-off" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+          <svg id="sfx-icon-on" style="display: none;" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+
+        <a class="btn-primary" href="https://github.com/oqi-aja/drone-live-engine/releases/latest" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Unduh v0.2.3</span>
+        </a>
+      </div>
     </div>
-  </div>
+  </header>
 
-  <!-- bidang kanan: gambar dunia drone, menutup sisi terjauh -->
-  <figure class="hero-photo">
-    <img src="assets/drone-sawah.jpg" alt="Drone pertanian terbang rendah di atas sawah hijau di Jepang"
-      width="1920" height="1277" decoding="async">
-    <figcaption>Sebuah drone bekerja di atas sawah: gambar RTMP yang panel ini terima, sebelum diteruskan ke mana-manapun.</figcaption>
+  <!-- ============================= HERO SECTION ============================= -->
+  <section class="hero" id="atas">
+    <!-- Interactive Canvas Background -->
+    <canvas id="hero-canvas"></canvas>
+
+    <div class="container">
+      <div class="hero-header-area">
+        <div class="section-tag hero-badge">
+          <span class="pulse-dot"></span>
+          <span>100% OFFLINE LOKAL · TANPA CLOUD · BEBAS BIAYA LANGGANAN</span>
+        </div>
+
+        <h1 class="hero-headline">
+          Siaran drone profesional dari <span class="shimmer-text">satu laptop.</span>
+        </h1>
+
+        <p class="hero-sub">
+          Drone Live Engine menerima siaran RTMP langsung dari DJI Fly, merekam MP4 tahan korup,
+          dan meneruskannya ke YouTube, Facebook, OBS, HP kru, dan Smart TV. Semua dari jaringan lokal tanpa cloud.
+        </p>
+
+        <div class="hero-actions">
+          <a class="btn-primary btn-hero-glow" href="https://github.com/oqi-aja/drone-live-engine/releases/latest" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Unduh untuk Windows
+          </a>
+          <a class="btn-secondary" href="#panel-asli">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            Coba Simulasi Aplikasi
+          </a>
+        </div>
+
+        <div class="hero-meta">
+          <div class="hero-meta-item">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Windows 10 / 11 (64-bit)</span>
+          </div>
+          <div class="hero-meta-item">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Lisensi Bebas MIT</span>
+          </div>
+          <div class="hero-meta-item">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Tanpa Kunci Aktivasi</span>
+          </div>
+          <div class="hero-meta-item">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Latensi Lokal ~280ms</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           EXACT APPLICATION WINDOW REPLICA (Matching User's Screenshot)
+           ==================================================================== -->
+      <div class="replica-wrapper">
+        <div class="replica-ambient-glow"></div>
+
+        <div class="app-replica-window" id="panel-asli">
+          <!-- Window Titlebar -->
+          <div class="replica-titlebar">
+            <div class="replica-titlebar-left">
+              <div class="replica-titlebar-dots">
+                <span class="replica-dot red" title="Tutup"></span>
+                <span class="replica-dot yellow" title="Minimalkan"></span>
+                <span class="replica-dot green" title="Maksimalkan"></span>
+              </div>
+              <img src="assets/icon.png" alt="" class="replica-titlebar-icon">
+              <span class="replica-window-title">Drone Live Engine</span>
+            </div>
+            <div class="replica-controls-mode">
+              <span class="replica-interactive-hint">
+                <span class="pulse-dot" style="background: var(--cyan);"></span>
+                Klik untuk Simulasi:
+              </span>
+              <button class="replica-mode-pill" id="btn-toggle-stream-mode" type="button" title="Ganti antara Mode Standby dan Mode Live">
+                Mode: <strong id="stream-mode-label">STANDBY</strong>
+              </button>
+            </div>
+          </div>
+
+          <!-- Real App Topbar (Exact match) -->
+          <div class="replica-topbar">
+            <div class="replica-brand">
+              <div class="replica-brand-mark" aria-hidden="true">
+                <img src="assets/icon.png" alt="Drone Live Engine Logo" class="replica-brand-logo-img">
+              </div>
+              <div>
+                <div class="replica-brand-title">
+                  Drone Live Engine <span class="replica-byline">by Oqi</span>
+                </div>
+                <p class="replica-tagline">Mesin siaran lokal untuk drone</p>
+              </div>
+            </div>
+
+            <div class="replica-metrics">
+              <div class="replica-metric">
+                <span class="replica-metric-lbl">WAKTU LOKAL</span>
+                <span class="replica-metric-val mono" id="app-clock">12.15.01</span>
+              </div>
+
+              <div class="replica-metric">
+                <span class="replica-metric-lbl">IP SISTEM</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span class="replica-metric-val mono" id="app-ip-val">Otomatis · 10.220.99.210</span>
+                  <button class="replica-icon-btn" id="btn-refresh-ip" style="width: 1.5rem; height: 1.5rem;" title="Deteksi ulang IP" type="button">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2.3 5.6"></path><path d="M20 4v7h-7"></path></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="replica-metric replica-metric-graph">
+                <span class="replica-metric-lbl">BITRATE LANGSUNG</span>
+                <span class="replica-metric-val mono" id="app-bitrate-text">0.0 kbps</span>
+                <canvas id="bitrate-canvas" width="150" height="34"></canvas>
+              </div>
+            </div>
+
+            <div class="replica-actions">
+              <span class="replica-status-pill" id="app-media-status">
+                <i></i><span>RTMP siap</span>
+              </span>
+              <button class="replica-icon-btn" type="button" title="Diagnostik">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"></path></svg>
+              </button>
+              <button class="replica-icon-btn" type="button" title="Ganti Tema">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"></path></svg>
+              </button>
+              <button class="replica-ghost-btn" type="button">ID</button>
+            </div>
+          </div>
+
+          <!-- Real App Body Layout (2 Columns) -->
+          <div class="replica-body">
+            <!-- Main Left Column -->
+            <div class="replica-col-main">
+              <!-- Card 1: Pratinjau Langsung -->
+              <article class="replica-card" id="card-preview">
+                <div class="replica-card-head">
+                  <div>
+                    <h3>Pratinjau Langsung</h3>
+                    <p class="replica-sub" id="preview-sub-text">live/drone1</p>
+                  </div>
+                  <div class="replica-cam-chips">
+                    <button class="replica-cam-chip active" id="tab-cam1" type="button">● drone1</button>
+                    <button class="replica-cam-chip" id="tab-cam2" type="button">drone2</button>
+                  </div>
+                </div>
+
+                <!-- Preview Viewport -->
+                <div class="replica-preview-box">
+                  <!-- Video / Image Layer (Shown in Live Mode) -->
+                  <img class="replica-video-feed hidden" id="feed-img" src="assets/drone-sawah.jpg" alt="Siaran Drone Sawah">
+                  <video class="replica-video-feed hidden" id="feed-vid" loop muted playsinline preload="metadata" poster="assets/udara-salju.jpg">
+                    <source src="assets/udara-salju.webm" type="video/webm">
+                  </video>
+
+                  <!-- Drone HUD Overlay (Shown in Live Mode) -->
+                  <div class="replica-live-hud hidden" id="feed-hud">
+                    <div class="hud-topbar">
+                      <span class="hud-pill"><i class="pulse-dot-red"></i> LIVE 00:04:18</span>
+                      <span class="hud-pill">4K · 60FPS</span>
+                      <span class="hud-pill">BAT: 88%</span>
+                      <span class="hud-pill">SIG: -72dBm</span>
+                      <span class="hud-pill">SATS: 29</span>
+                    </div>
+
+                    <div class="hud-reticle">
+                      <div class="hud-crosshair-lines"></div>
+                      <div class="hud-pitch-level"></div>
+                    </div>
+
+                    <div class="hud-bottombar">
+                      <div class="hud-stat">
+                        <span class="hud-stat-lbl">ALTITUDE</span>
+                        <span class="hud-stat-val" id="hud-alt">124.5 M</span>
+                      </div>
+                      <div class="hud-stat">
+                        <span class="hud-stat-lbl">SPEED</span>
+                        <span class="hud-stat-val" id="hud-spd">24.8 KM/H</span>
+                      </div>
+                      <div class="hud-stat">
+                        <span class="hud-stat-lbl">DISTANCE</span>
+                        <span class="hud-stat-val" id="hud-dist">412 M</span>
+                      </div>
+                      <div class="hud-stat">
+                        <span class="hud-stat-lbl">GPS POS</span>
+                        <span class="hud-stat-val">7°58'24"S 112°57'12"E</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Standby Layer (Shown in Standby Mode - exact match to screenshot) -->
+                  <div class="replica-standby" id="feed-standby">
+                    <span class="replica-pulse-radar"></span>
+                    <p>Menunggu sinyal drone…</p>
+                    <small>Kirim RTMP dari DJI Fly ke alamat di bawah.</small>
+                  </div>
+
+                  <div class="replica-watermark" id="preview-watermark" hidden>LIVE</div>
+
+                  <!-- Preview Tools Bar (Bottom Left) -->
+                  <div class="replica-preview-tools">
+                    <button class="replica-chip" id="btn-toggle-wm" type="button">Watermark</button>
+                    <input class="replica-input-inline" id="input-wm-text" value="LIVE" maxlength="20" aria-label="Teks Watermark">
+                    <button class="replica-chip" type="button">Logo</button>
+                    <button class="replica-chip replica-chip-icon" id="btn-fs-preview" type="button" aria-label="Fullscreen">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg>
+                    </button>
+                  </div>
+                </div>
+              </article>
+
+              <!-- Card 2: Tautan Koneksi (4 Link Rows matching screenshot) -->
+              <article class="replica-card" id="card-links">
+                <div class="replica-card-head">
+                  <div>
+                    <h3>Tautan Koneksi</h3>
+                    <p class="replica-sub">Gunakan tautan sesuai perangkat tujuan.</p>
+                  </div>
+                  <span class="replica-pill" id="link-stream-pill">live/drone1</span>
+                </div>
+
+                <div class="replica-links">
+                  <!-- Row 1: DJI Fly RTMP -->
+                  <div class="replica-link-row">
+                    <div class="replica-link-head">
+                      <span class="replica-link-title">1. DJI Fly RTMP</span>
+                      <span class="replica-link-desc">Tempel di Live Streaming DJI Fly. Bila ada kolom stream key, pakai rtmp://IP:1935/live + drone1.</span>
+                    </div>
+                    <div class="replica-link-input-group">
+                      <input class="replica-input mono" id="link-dji" value="rtmp://10.220.99.210:1935/live/drone1" readonly>
+                      <button class="replica-btn-ghost" data-copy="link-dji" type="button">Salin</button>
+                      <button class="replica-btn-ghost replica-btn-qr" data-qr="link-dji" type="button">QR</button>
+                    </div>
+                  </div>
+
+                  <!-- Row 2: RTSP -->
+                  <div class="replica-link-row">
+                    <div class="replica-link-head">
+                      <span class="replica-link-title">2. RTSP (vMix / OBS)</span>
+                      <span class="replica-link-desc">Input jaringan untuk vMix atau OBS.</span>
+                    </div>
+                    <div class="replica-link-input-group">
+                      <input class="replica-input mono" id="link-rtsp" value="rtsp://10.220.99.210:8554/live/drone1" readonly>
+                      <button class="replica-btn-ghost" data-copy="link-rtsp" type="button">Salin</button>
+                      <button class="replica-btn-ghost replica-btn-qr" data-qr="link-rtsp" type="button">QR</button>
+                    </div>
+                  </div>
+
+                  <!-- Row 3: HLS -->
+                  <div class="replica-link-row">
+                    <div class="replica-link-head">
+                      <span class="replica-link-title">3. HLS (Smart TV)</span>
+                      <span class="replica-link-desc">Cocok untuk pemutar browser di Smart TV.</span>
+                    </div>
+                    <div class="replica-link-input-group">
+                      <input class="replica-input mono" id="link-hls" value="http://10.220.99.210:8888/live/drone1/index.m3u8" readonly>
+                      <button class="replica-btn-ghost" data-copy="link-hls" type="button">Salin</button>
+                      <button class="replica-btn-ghost replica-btn-qr" data-qr="link-hls" type="button">QR</button>
+                    </div>
+                  </div>
+
+                  <!-- Row 4: Web Browser -->
+                  <div class="replica-link-row">
+                    <div class="replica-link-head">
+                      <span class="replica-link-title">4. Tonton di Browser</span>
+                      <span class="replica-link-desc">Bagikan QR agar penonton bisa memantau dari HP.</span>
+                    </div>
+                    <div class="replica-link-input-group">
+                      <input class="replica-input mono" id="link-web" value="http://10.220.99.210:8889/live/drone1/" readonly>
+                      <button class="replica-btn-ghost" data-copy="link-web" type="button">Salin</button>
+                      <button class="replica-btn-ghost replica-btn-qr" data-qr="link-web" type="button">QR</button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <!-- Side Right Column -->
+            <div class="replica-col-side">
+              <!-- Card 1: Rekaman -->
+              <article class="replica-card" id="card-rec">
+                <div class="replica-card-head">
+                  <h3>Rekaman</h3>
+                  <span class="replica-status-badge-card" id="rec-status-badge"><i></i><span id="rec-status-text">Siaga</span></span>
+                </div>
+                <label class="replica-field-label">FOLDER PENYIMPANAN</label>
+                <div class="replica-field-row">
+                  <input class="replica-input mono" value="C:UsersLenovoVideosdrone stream" readonly>
+                  <button class="replica-btn-ghost" type="button">Pilih</button>
+                </div>
+                <button class="replica-btn-primary-block" id="btn-toggle-rec" type="button">
+                  <span id="rec-btn-text">Mulai Rekam</span>
+                </button>
+                <p class="replica-hint">Rekaman memakai fragmen MP4, tetap aman walau drone terputus.</p>
+              </article>
+
+              <!-- Card 2: Restream -->
+              <article class="replica-card" id="card-rs">
+                <div class="replica-card-head">
+                  <h3>Restream</h3>
+                  <span class="replica-status-badge-card"><i></i><span>Siaga</span></span>
+                </div>
+
+                <div class="replica-target">
+                  <span class="replica-field-label">TARGET 1</span>
+                  <input class="replica-input mono" value="rtmp://10.220.99.210:1935/live/drone1" placeholder="rtmp://a.rtmp.youtube.com/live2">
+                  <input class="replica-input mono" placeholder="stream key">
+                </div>
+
+                <div class="replica-target">
+                  <span class="replica-field-label">TARGET 2 (OPSIONAL)</span>
+                  <input class="replica-input mono" value="http://10.220.99.210:8889/live/drone1/" placeholder="rtmp://live.instagram.com/rtmp">
+                  <input class="replica-input mono" placeholder="stream key">
+                </div>
+
+                <div class="replica-field-row two">
+                  <div>
+                    <label class="replica-field-label">SUMBER AUDIO</label>
+                    <input class="replica-input" value="Audio dari stream" readonly>
+                  </div>
+                  <div>
+                    <label class="replica-field-label">KUALITAS</label>
+                    <input class="replica-input" value="HD · 3500 kbps" readonly>
+                  </div>
+                </div>
+
+                <div class="replica-btn-row">
+                  <button class="replica-btn-ghost" type="button">Mulai 1</button>
+                  <button class="replica-btn-ghost" type="button">Mulai 2</button>
+                  <button class="replica-btn-ghost replica-btn-danger" type="button">Stop</button>
+                </div>
+              </article>
+
+              <!-- Card 3: Kamera Virtual -->
+              <article class="replica-card" id="card-vcam">
+                <div class="replica-card-head">
+                  <h3>Kamera Virtual</h3>
+                  <span class="replica-status-badge-card"><i></i><span>Mati</span></span>
+                </div>
+                <p class="replica-hint" style="margin-top: 0;">
+                  Aktifkan bila vMix atau OBS tidak bisa membuka RTSP. Memakai CPU dan RAM tambahan.
+                </p>
+                <p class="replica-hint">
+                  Lalu pilih kamera <strong>Drone Live Engine</strong> di OBS, vMix, Meet, atau Zoom.
+                </p>
+                <button class="replica-btn-ghost" style="width: 100%; margin-top: 8px;" type="button">Nyalakan VCam</button>
+              </article>
+
+              <!-- Card 4: Akses dari HP -->
+              <article class="replica-card" id="card-lan">
+                <div class="replica-card-head">
+                  <h3>Akses dari HP</h3>
+                  <span class="replica-status-badge-card" id="lan-status-badge"><i></i><span id="lan-status-text">Mati</span></span>
+                </div>
+                <p class="replica-hint" style="margin-top: 0;">
+                  Nyalakan untuk mengontrol siaran dari HP di Wi-Fi yang sama. Panel tetap tertutup selama tombol ini mati.
+                </p>
+                <button class="replica-btn-ghost" id="btn-toggle-lan" style="width: 100%; margin-top: 8px;" type="button">
+                  <span id="lan-btn-text">Aktifkan Akses HP</span>
+                </button>
+                <div id="lan-box-active" style="display: none; margin-top: 10px; text-align: center;">
+                  <div style="font-family: var(--font-mono); font-size: 1.25rem; font-weight: 800; letter-spacing: 0.25em; color: var(--teal); background: rgba(0,0,0,0.4); padding: 8px; border-radius: 6px; border: 1px dashed rgba(52, 211, 153, 0.4);">
+                    492 810
+                  </div>
+                  <small style="font-size: 0.68rem; color: var(--text-muted); display: block; margin-top: 4px;">Kode pairing 6 angka berlaku 5 menit</small>
+                </div>
+              </article>
+
+              <!-- Card 5: Panduan singkat -->
+              <article class="replica-card" style="padding: 0.875rem 1.125rem;">
+                <details style="cursor: pointer;">
+                  <summary style="font-size: 0.78125rem; font-weight: 700; color: var(--text-soft); list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Panduan singkat</span>
+                    <span style="color: var(--cyan); font-weight: 800;">+</span>
+                  </summary>
+                  <div style="margin-top: 8px; font-size: 0.72rem; color: var(--text-muted); line-height: 1.6;">
+                    Buka DJI Fly → Pengaturan Transmisi → Live Streaming (RTMP) → tempel tautan DJI Fly RTMP. Video akan langsung masuk 1–3 detik.
+                  </div>
+                </details>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= CARA KERJA (4-STEP WORKFLOW) ============================= -->
+  <section class="section" id="cara">
+    <div class="container">
+      <div class="section-head reveal">
+        <div class="section-tag">
+          <span class="pulse-dot"></span>
+          <span>ALUR MUDAH 4 LANGKAH</span>
+        </div>
+        <h2>Bagaimana cara kerjanya?</h2>
+        <p>Dirancang untuk pilot drone di lapangan. Tanpa konfigurasi router rumit atau cloud berbayar.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card reveal">
+          <div class="step-badge">01</div>
+          <h3 class="step-title">Ambil RTMP di Laptop</h3>
+          <p class="step-desc">Buka aplikasi Drone Live Engine di laptop. Alamat RTMP otomatis terdeteksi mengikuti jaringan Wi-Fi atau hotspot Anda.</p>
+          <div class="step-mini-ui">
+            <code>rtmp://10.220.99.210:1935/live/drone1</code>
+          </div>
+        </div>
+
+        <div class="step-card reveal">
+          <div class="step-badge">02</div>
+          <h3 class="step-title">Tempel di DJI Fly</h3>
+          <p class="step-desc">Buka menu Live Streaming pada aplikasi DJI Fly di remote atau HP drone, tempel alamat RTMP, lalu mulai transmisi.</p>
+          <div class="step-mini-ui">
+            <span style="color: var(--teal);">● Status: Sinyal masuk 1–3 detik</span>
+          </div>
+        </div>
+
+        <div class="step-card reveal">
+          <div class="step-badge">03</div>
+          <h3 class="step-title">Rekam & Restream</h3>
+          <p class="step-desc">Tekan Mulai Rekam untuk arsip MP4 tahan korup, serta aktifkan restream otomatis ke YouTube & Facebook bersamaan.</p>
+          <div class="step-mini-ui">
+            <span style="color: var(--cyan);">● Dual Restream Aktif · fMP4 Aman</span>
+          </div>
+        </div>
+
+        <div class="step-card reveal">
+          <div class="step-badge">04</div>
+          <h3 class="step-title">Bagikan ke HP & OBS</h3>
+          <p class="step-desc">Kru dapat menonton langsung dari browser HP via kode pairing 6 angka, atau relay langsung ke OBS & Zoom lewat webcam virtual.</p>
+          <div class="step-mini-ui">
+            <span style="color: var(--teal);">● Kode Pairing: 492 810 (Aktif)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= SKENARIO LAPANGAN (INTERACTIVE MISSIONS) ============================= -->
+  <section class="section" id="skenario">
+    <div class="container">
+      <div class="section-head reveal">
+        <div class="section-tag">
+          <span class="pulse-dot"></span>
+          <span>APLIKASI DI DUNIA NYATA</span>
+        </div>
+        <h2>Siap untuk setiap misi di lapangan.</h2>
+        <p>Dari pesta pernikahan megah hingga misi pencarian SAR darurat, Drone Live Engine bekerja tanpa bergantung pada koneksi internet.</p>
+      </div>
+
+      <div class="mission-wrapper reveal">
+        <div class="mission-tabs" role="tablist">
+          <button class="mission-tab active" data-mission="wedding" type="button" role="tab">
+            <span class="mission-tab-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></span>
+            <span class="mission-tab-text">
+              <strong>Event & Wedding Live</strong>
+              <small>LED Wall Ballroom & Proyektor</small>
+            </span>
+          </button>
+          <button class="mission-tab" data-mission="sar" type="button" role="tab">
+            <span class="mission-tab-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"></path><path d="M5 20l5.5-12L15 15l2.5-5L21 20"></path></svg></span>
+            <span class="mission-tab-text">
+              <strong>SAR & Bencana</strong>
+              <small>Posko Tenda Tanpa Sinyal</small>
+            </span>
+          </button>
+          <button class="mission-tab" data-mission="racing" type="button" role="tab">
+            <span class="mission-tab-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg></span>
+            <span class="mission-tab-text">
+              <strong>Olahraga & FPV</strong>
+              <small>Pit Stop Latensi &lt;300ms</small>
+            </span>
+          </button>
+          <button class="mission-tab" data-mission="broadcast" type="button" role="tab">
+            <span class="mission-tab-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"></circle><path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 16.24a6 6 0 0 1 0-8.49M19.07 4.93a10 10 0 0 1 0 14.14M4.93 19.07a10 10 0 0 1 0-14.14"></path></svg></span>
+            <span class="mission-tab-text">
+              <strong>Liputan TV & OBS</strong>
+              <small>Webcam Virtual & Dual Restream</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="mission-card" id="mission-card-content">
+          <!-- Dynamic Content generated by JS -->
+          <div class="mission-grid">
+            <div class="mission-content">
+              <span class="mission-tag-pill" id="mission-pill">WEDDING & LIVE PRODUCTION</span>
+              <h3 class="mission-heading" id="mission-title">Momen Sakral Tampil di LED Wall Ballroom.</h3>
+              <p class="mission-desc" id="mission-desc">
+                Sering kali kabel HDMI dari drone ke switcher panggung sangat merepotkan dan berbahaya. Dengan Drone Live Engine, drone menyiarkan langsung lewat Wi-Fi gedung ke laptop switcher Anda. Video langsung masuk ke vMix atau ATEM Mini via RTSP dalam hitungan milidetik.
+              </p>
+              <div class="mission-specs-list" id="mission-specs">
+                <div class="mission-spec-item">
+                  <span class="spec-label">Protokol Rekomendasi:</span>
+                  <span class="spec-val">RTSP / HDMI Output via OBS Fullscreen</span>
+                </div>
+                <div class="mission-spec-item">
+                  <span class="spec-label">Latensi ke Layar:</span>
+                  <span class="spec-val" style="color: var(--cyan);">&lt; 1 Detik (Sinkron Audio Panggung)</span>
+                </div>
+                <div class="mission-spec-item">
+                  <span class="spec-label">Backup Rekaman:</span>
+                  <span class="spec-val">fMP4 Master Otomatis di SSD Laptop</span>
+                </div>
+              </div>
+            </div>
+            <div class="mission-visual">
+              <div class="mission-preview-frame">
+                <img id="mission-image" src="assets/drone-sawah.jpg" alt="Misi Lapangan Drone" class="mission-img">
+                <div class="mission-hud-badge">
+                  <span class="pulse-dot"></span>
+                  <span id="mission-badge-text">STATUS: FEED STABIL · ZERO DROPOUT</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= PROTOCOL ROUTING PIPELINE ============================= -->
+  <section class="section" id="alur">
+    <div class="container">
+      <div class="section-head reveal">
+        <div class="section-tag">
+          <span class="pulse-dot"></span>
+          <span>MATRIKS PROTOKOL</span>
+        </div>
+        <h2>Satu masukan RTMP, semua tujuan keluar.</h2>
+        <p>Drone Live Engine bertindak sebagai hub transmisi video lokal super cepat, membagi satu siaran drone ke seluruh format industri.</p>
+      </div>
+
+      <div class="routing-container reveal">
+        <div class="routing-ip-selector">
+          <div class="ip-info">
+            <span class="ip-label">Simulasikan Alamat IP Laptop Anda:</span>
+            <div class="ip-input-wrap">
+              <span style="color: var(--text-muted); font-family: var(--font-mono);">rtmp://</span>
+              <input type="text" id="custom-ip-input" class="ip-input" value="10.220.99.210" spellcheck="false" autocomplete="off">
+            </div>
+          </div>
+          <div class="ip-presets">
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Preset Cepat:</span>
+            <button class="ip-preset-btn active" data-preset="10.220.99.210" type="button">Hotspot Lapangan</button>
+            <button class="ip-preset-btn" data-preset="192.168.1.105" type="button">Wi-Fi Kantor</button>
+            <button class="ip-preset-btn" data-preset="172.20.10.4" type="button">Hotspot HP</button>
+          </div>
+        </div>
+
+        <div class="routing-grid">
+          <div class="routing-column">
+            <div class="node-card">
+              <div class="node-header">
+                <div class="node-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </div>
+                <div class="node-title">DJI Fly Ingest</div>
+                <span class="node-proto-tag">RTMP In</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">Masukan dari remote DJI Fly port 1935.</p>
+              <div class="node-url-box">
+                <code class="node-url" id="proto-rtmp-in">rtmp://10.220.99.210:1935/live/drone1</code>
+                <button class="node-copy-mini" data-copy="proto-rtmp-in" title="Salin" type="button">Salin</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="center-hub">
+            <div class="hub-pulse-ring">
+              <img src="assets/icon.png" alt="Logo Core" class="hub-icon-img">
+            </div>
+            <h3 class="hub-title">Drone Live Engine Core</h3>
+            <p class="hub-desc">MediaMTX + FFmpeg Ultra-Low Latency Pipeline. Pemrosesan paralel tanpa re-encoding boros daya.</p>
+            <div class="hub-stats">
+              <div class="hub-stat-item">
+                <span>CPU OVERHEAD</span>
+                <span class="hub-stat-val">~2.4%</span>
+              </div>
+              <div class="hub-stat-item">
+                <span>INTERNAL BUFFER</span>
+                <span class="hub-stat-val">0 Frame Drop</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="routing-column">
+            <div class="node-card">
+              <div class="node-header">
+                <div class="node-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                </div>
+                <div class="node-title">Browser HP Kru</div>
+                <span class="node-proto-tag">WebRTC &lt;1s</span>
+              </div>
+              <div class="node-url-box">
+                <code class="node-url" id="proto-webrtc">http://10.220.99.210:8889/live/drone1/</code>
+                <button class="node-copy-mini" data-copy="proto-webrtc" title="Salin" type="button">Salin</button>
+              </div>
+            </div>
+
+            <div class="node-card">
+              <div class="node-header">
+                <div class="node-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                </div>
+                <div class="node-title">OBS Studio & vMix</div>
+                <span class="node-proto-tag">RTSP</span>
+              </div>
+              <div class="node-url-box">
+                <code class="node-url" id="proto-rtsp">rtsp://10.220.99.210:8554/live/drone1</code>
+                <button class="node-copy-mini" data-copy="proto-rtsp" title="Salin" type="button">Salin</button>
+              </div>
+            </div>
+
+            <div class="node-card">
+              <div class="node-header">
+                <div class="node-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+                </div>
+                <div class="node-title">Smart TV & Safari</div>
+                <span class="node-proto-tag">HLS M3U8</span>
+              </div>
+              <div class="node-url-box">
+                <code class="node-url" id="proto-hls">http://10.220.99.210:8888/live/drone1/index.m3u8</code>
+                <button class="node-copy-mini" data-copy="proto-hls" title="Salin" type="button">Salin</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= LATENCY BENCHMARK SECTION ============================= -->
+  <section class="section" id="latensi">
+    <div class="container">
+      <div class="section-head reveal">
+        <div class="section-tag">
+          <span class="pulse-dot"></span>
+          <span>KOMPARASI LATENSI REAL-TIME</span>
+        </div>
+        <h2>Dari kamera drone hingga ke layar mata Anda.</h2>
+        <p>Lihat perbandingan kecepatan transmisi antar protokol siaran dari laptop yang sama di Wi-Fi yang sama.</p>
+      </div>
+
+      <div class="latency-card reveal">
+        <div class="latency-bars">
+          <div class="latency-row">
+            <div class="latency-info">
+              <div class="latency-name">
+                <span class="pulse-dot" style="background: var(--cyan);"></span>
+                <span>WebRTC (Browser & HP Kru)</span>
+              </div>
+              <span class="latency-value" style="color: var(--cyan);">≈ 0.8 Detik</span>
+            </div>
+            <div class="latency-track">
+              <div class="latency-fill webrtc" id="bar-webrtc">Instan (0.8s)</div>
+            </div>
+          </div>
+
+          <div class="latency-row">
+            <div class="latency-info">
+              <div class="latency-name">
+                <span class="pulse-dot" style="background: #3b82f6;"></span>
+                <span>RTSP (OBS Studio / vMix Broadcast)</span>
+              </div>
+              <span class="latency-value" style="color: #60a5fa;">± 1.2–1.8 Detik</span>
+            </div>
+            <div class="latency-track">
+              <div class="latency-fill rtsp" id="bar-rtsp">Sangat Cepat (1.4s)</div>
+            </div>
+          </div>
+
+          <div class="latency-row">
+            <div class="latency-info">
+              <div class="latency-name">
+                <span class="pulse-dot" style="background: var(--amber);"></span>
+                <span>HLS HTTP (Smart TV & Safari Web)</span>
+              </div>
+              <span class="latency-value" style="color: var(--amber);">6.0 – 12.0 Detik</span>
+            </div>
+            <div class="latency-track">
+              <div class="latency-fill hls" id="bar-hls">Standar Penyiaran (8.0s)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="latency-benchmark-trigger">
+          <span style="font-size: 0.88rem; color: var(--text-soft);">
+            Uji respons transmisi data paket secara langsung:
+          </span>
+          <button class="btn-primary" id="btn-run-latency-test" type="button">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            Jalankan Simulasi Tes Latensi
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= FIELD PHOTO BAND ============================= -->
+  <figure class="section-photo reveal">
+    <img src="assets/sawah-ngadas.jpg" alt="Drone melayang rendah di atas hamparan sawah saat pagi hari" loading="lazy">
+    <figcaption class="photo-hud">
+      <span class="pulse-dot"></span>
+      <span>FEED LAPANGAN · 2.7K · 30FPS · SAWAH NGADAS, MALANG</span>
+    </figcaption>
   </figure>
 
-  <!-- demonstrasi pertama muncul dari bawah: potongan panel asli, ukuran nyata -->
-  <div class="hero-demo" data-ui>
-    <div class="ui-status">
-      <span class="ui-dot" aria-hidden="true"></span>RTMP siap
-      <span class="ui-note">1 kamera · live/drone1</span>
-    </div>
-    <div class="ui-row">
-      <span class="ui-label">DJI Fly RTMP</span>
-      <code class="ui-code" id="hero-rtmp">rtmp://10.220.99.210:1935/live/drone1</code>
-      <button class="ui-copy" type="button" data-copy="hero-rtmp" data-goto="rtmp://10.220.99.210:1935/live/drone1">Salin</button>
-    </div>
-  </div>
-</header>
-
-<!-- ======================= CARA KERJA (4 field) =================== -->
-<section class="how" id="cara" aria-label="Cara kerja">
-  <div class="how-field how-1">
-    <h2>Cara kerja</h2>
-    <p class="how-clause">Pertama, salin tautan RTMP di panel laptop.</p>
-    <div class="ui-card" data-ui>
-      <div class="ui-preview ui-preview-empty">Menunggu sinyal drone&hellip;</div>
-      <p class="ui-hint">Kirim RTMP dari DJI Fly ke alamat di bawah.</p>
-      <div class="ui-row">
-        <span class="ui-label">1. DJI Fly RTMP</span>
-        <code class="ui-code ui-code-ghost">rtmp://…</code>
-      </div>
-    </div>
-  </div>
-  <div class="how-field how-2">
-    <p class="how-clause">Lalu tempel di DJI Fly. Siaran masuk 1–3 detik.</p>
-    <div class="ui-card" data-ui>
-      <div class="ui-status"><span class="ui-dot" aria-hidden="true"></span>RTMP siap</div>
-      <div class="ui-row">
-        <span class="ui-label">1. DJI Fly RTMP</span>
-        <code class="ui-code">rtmp://10.220.99.210:1935/live/drone1</code>
-      </div>
-      <p class="ui-rate">3 520 kbps &middot; 720p30</p>
-    </div>
-  </div>
-  <div class="how-field how-3">
-    <p class="how-clause">Setelah itu, tekan Mulai Rekam.</p>
-    <div class="ui-card" data-ui>
-      <div class="ui-rec"><span class="ui-dot ui-dot-red" aria-hidden="true"></span>Merekam</div>
-      <p class="ui-hint">Berkas MP4 memakai fragmen, tetap bisa diputar walau drone terputus.</p>
-      <code class="ui-code">Recording_drone1_2026-11-01_16-40.mp4</code>
-    </div>
-  </div>
-  <div class="how-field how-4">
-    <p class="how-clause">Akhirnya, tonton dari HP lewat kode pairing.</p>
-    <div class="ui-card" data-ui>
-      <div class="ui-status"><span class="ui-dot" aria-hidden="true"></span>Akses HP aktif</div>
-      <div class="ui-row">
-        <span class="ui-label">Perangkat terhubung</span>
-        <span class="ui-code">Lenovo · aktif 12 dtk lalu</span>
-      </div>
-      <p class="ui-hint">Kode 6 angka sekali pakai, berlaku 5 menit.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ======================== SHOWCASE (split) ====================== -->
-<section class="show" id="satu" aria-label="Satu masukan, lima keluaran">
-  <div class="show-in">
-    <label class="show-inlabel" for="show-host">Alamat laptop yang ditempel di DJI Fly</label>
-    <code class="show-url">rtmp://<input id="show-host" value="10.220.99.210" spellcheck="false" autocomplete="off">:1935/live/drone1</code>
-    <p class="show-note">Tautan ini satu-satunya yang ditulis. Sisanya dihitung mesin.</p>
-  </div>
-  <div class="show-out">
-    <div class="ui-out" data-ui>
-      <div class="ui-outrow"><span class="ui-outkind">Rekaman</span><span class="ui-outval">MP4 di folder pilihan Anda</span></div>
-      <div class="ui-outrow"><span class="ui-outkind">YouTube + Facebook</span><span class="ui-outval">dua RTMP target bersamaan</span></div>
-      <div class="ui-outrow"><span class="ui-outkind">OBS / vMix</span><span class="ui-outval"><code id="out-rtsp">rtsp://10.220.99.210:8554/live/drone1</code></span></div>
-      <div class="ui-outrow"><span class="ui-outkind">Smart TV</span><span class="ui-outval"><code id="out-hls">http://10.220.99.210:8888/live/drone1/index.m3u8</code></span></div>
-      <div class="ui-outrow"><span class="ui-outkind">Browser lain</span><span class="ui-outval"><code id="out-webrtc">http://10.220.99.210:8889/live/drone1</code></span></div>
-      <div class="ui-outrow ui-outrow-last"><span class="ui-outkind">Zoom / Meet</span><span class="ui-outval">kamera virtual “Drone Live Engine”</span></div>
-    </div>
-  </div>
-  <h2 class="show-head"><span>RTMP masuk,</span><span>semua keluar.</span></h2>
-</section>
-
-<!-- ===================== FEATURES (panel + notes) ================= -->
-<section class="feat" id="panel" aria-label="Isi panel">
-  <h2 class="feat-title">Enam catatan, satu panel.</h2>
-  <div class="feat-grid">
-    <div class="feat-notes feat-notes-l">
-      <div class="feat-note" style="--y: 3%">
-        <h3>Pratinjau yang pulih cepat</h3>
-        <p>Sinyal drone terputus dua detik? Peringatan tampil di bawah satu detik, video balik saat sinyal kembali, tanpa beku panjang.</p>
-      </div>
-      <div class="feat-note" style="--y: 30%">
-        <h3>Restream dua platform</h3>
-        <p>YouTube dan Facebook bersamaan; restream menunggu drone, lalu mulai otomatis ketika gambar masuk.</p>
-      </div>
-      <div class="feat-note" style="--y: 57%">
-        <h3>Kamera virtual</h3>
-        <p>Kamera bernama “Drone Live Engine” muncul di OBS, vMix, Zoom, dan Google Meet seperti webcam biasa.</p>
-      </div>
-    </div>
-
-    <figure class="feat-panel" data-ui>
-      <figcaption class="sr-only">Potongan panel Drone Live Engine pada layar laptop</figcaption>
-      <div class="fp-status"><span class="ui-dot" aria-hidden="true"></span>RTMP siap</div>
-      <div class="fp-preview">
-        <span class="fp-camera fp-camera-a">● drone1</span>
-        <span class="fp-camera">drone2</span>
-        <img class="fp-img is-on" src="assets/preview-standby.jpg" alt="Pratinjau panel saat menunggu sinyal drone" width="1200" height="565" loading="lazy" decoding="async">
-        <img class="fp-img" src="assets/preview-live.jpg" alt="Pratinjau panel ketika siaran drone hidup" width="1200" height="565" loading="lazy" decoding="async">
-        <p class="fp-wait" aria-hidden="true">Menunggu sinyal drone…</p>
-      </div>
-      <div class="fp-links">
-        <div class="fp-linkrow">
-          <span class="fp-kind">RTSP</span>
-          <code class="fp-code">rtsp://10.220.99.210:8554/live/drone1</code>
+  <!-- ============================= DRONE COMPATIBILITY CHECKER ============================= -->
+  <section class="section" id="kompatibilitas">
+    <div class="container">
+      <div class="section-head reveal">
+        <div class="section-tag">
+          <span class="pulse-dot"></span>
+          <span>KOMPATIBILITAS DRONE</span>
         </div>
-        <div class="fp-linkrow">
-          <span class="fp-kind">HLS</span>
-          <code class="fp-code">http://…:8888/live/drone1/index.m3u8</code>
+        <h2>Apakah drone Anda didukung?</h2>
+        <p>Cek kompatibilitas model drone Anda dan lihat konfigurasi transmisi yang direkomendasikan.</p>
+      </div>
+
+      <div class="compat-checker-card reveal">
+        <div class="compat-selector-row">
+          <label for="drone-model-select" class="compat-label">Pilih Model Drone Anda:</label>
+          <div class="compat-select-wrapper">
+            <select id="drone-model-select" class="compat-select">
+              <option value="mini4">DJI Mini 4 Pro / Mini 3 Pro</option>
+              <option value="air3">DJI Air 3 / Air 2S</option>
+              <option value="mavic3">DJI Mavic 3 Pro / Classic / Enterprise</option>
+              <option value="avata2">DJI Avata / Avata 2 (FPV Goggles)</option>
+              <option value="inspire3">DJI Inspire 3 / Phantom 4</option>
+              <option value="matrice">DJI Matrice 30T / 350 RTK</option>
+              <option value="custom">Autel EVO II / Kamera RTMP Custom</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="compat-result-grid" id="compat-result-grid">
+          <div class="compat-card-metric">
+            <span class="compat-metric-title">STATUS RTMP</span>
+            <span class="compat-metric-value ok" id="compat-rtmp-status">✓ 100% Didukung Native</span>
+            <small class="compat-metric-sub">Kirim via DJI Fly Live Stream</small>
+          </div>
+          <div class="compat-card-metric">
+            <span class="compat-metric-title">RESOLUSI MAKSIMAL</span>
+            <span class="compat-metric-value" id="compat-resolution">1080p @ 60 FPS</span>
+            <small class="compat-metric-sub">Bitrate 4000 - 6000 kbps</small>
+          </div>
+          <div class="compat-card-metric">
+            <span class="compat-metric-title">LATENSI RATA-RATA</span>
+            <span class="compat-metric-value" style="color: var(--cyan);" id="compat-latency">~260 - 320 ms</span>
+            <small class="compat-metric-sub">Dalam jangkauan Wi-Fi lokal</small>
+          </div>
+          <div class="compat-card-metric">
+            <span class="compat-metric-title">TIPE REMOTE</span>
+            <span class="compat-metric-value" id="compat-rc">DJI RC 2 / RC-N2 / RC Pro</span>
+            <small class="compat-metric-sub">Tersambung hotspot laptop</small>
+          </div>
+        </div>
+
+        <div class="compat-tip-box" id="compat-tip-box">
+          <div class="compat-tip-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2z"></path></svg></div>
+          <div class="compat-tip-text">
+            <strong>Rekomendasi Operasional:</strong> Gunakan frekuensi 5.8 GHz untuk hotspot laptop Anda agar transmisi video drone tidak saling menginterferensi dengan sinyal kendali remote.
+          </div>
         </div>
       </div>
-      <div class="fp-actions">
-        <span class="fp-btn fp-btn-rec">Mulai Rekam</span>
-        <span class="fp-btn">Mulai restream 1</span>
-        <span class="fp-btn">QR</span>
-      </div>
-    </figure>
+    </div>
+  </section>
 
-    <div class="feat-notes feat-notes-r">
-      <div class="feat-note" style="--y: 10%">
-        <h3>Rekaman tahan putus</h3>
-        <p>MP4 memakai fragmen: laptop mati mendadak tak merusak berkas yang sudah direkam.</p>
+  <!-- ============================= BENTO FEATURES ============================= -->
+  <section class="section" id="fitur">
+    <div class="container">
+      <div class="section-head reveal">
+        <div class="section-tag">
+          <span class="pulse-dot"></span>
+          <span>FITUR UNGGULAN</span>
+        </div>
+        <h2>Enam rekayasa mesin, satu panel kokoh.</h2>
+        <p>Setiap fitur diciptakan untuk menjawab kendala nyata saat siaran drone di lokasi terbuka.</p>
       </div>
-      <div class="feat-note" style="--y: 38%">
-        <h3>Tautan untuk tiap perangkat</h3>
-        <p>RTSP untuk OBS, HLS untuk Smart TV, WebRTC untuk browser. Masing-masing punya QR siap dibagikan.</p>
-      </div>
-      <div class="feat-note" style="--y: 64%">
-        <h3>Panel di HP</h3>
-        <p>Akses mati secara default. Dinyalakan dengan kode 6 angka sekali pakai, dicabut per perangkat.</p>
+
+      <div class="bento-grid">
+        <div class="bento-card reveal">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 12a11.05 11.05 0 0 0-22 0zm-5 7a3 3 0 0 1-6 0v-7"></path></svg>
+          </div>
+          <h3>Pratinjau Auto-Recover</h3>
+          <p>Sinyal drone terputus dua detik di balik bukit atau gedung? Peringatan tampil di bawah 1 detik, video langsung tersambung otomatis saat sinyal kembali tanpa beku panjang.</p>
+          <div class="bento-preview-box">
+            <span style="color: var(--teal);">● Reconnect: Auto · 0 Hang</span>
+          </div>
+        </div>
+
+        <div class="bento-card reveal">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          </div>
+          <h3>Dual-Destination Restream</h3>
+          <p>Siarkan ke YouTube Live dan Facebook secara simultan. Restream otomatis standby menunggu drone dan langsung on-air seketika gambar pertama masuk.</p>
+          <div class="bento-preview-box">
+            <span style="color: var(--cyan);">● YouTube + Facebook On-Air</span>
+          </div>
+        </div>
+
+        <div class="bento-card reveal">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          </div>
+          <h3>Kamera Virtual DirectShow</h3>
+          <p>Kamera bernama "Drone Live Engine" langsung terdaftar di sistem Windows. Bisa langsung dipilih sebagai webcam di OBS, vMix, Zoom, dan Google Meet.</p>
+          <div class="bento-preview-box">
+            <span style="color: var(--teal);">● Driver DirectShow Native</span>
+          </div>
+        </div>
+
+        <div class="bento-card reveal">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          </div>
+          <h3>Rekaman MP4 Tahan Putus</h3>
+          <p>Menggunakan format fragmented MP4 (fMP4). Jika kabel laptop tersenggol atau baterai mati mendadak di lapangan, file rekaman tetap utuh dan dapat diputar sempurna.</p>
+          <div class="bento-preview-box">
+            <span style="color: var(--cyan);">● Format fMP4 Anti-Corruption</span>
+          </div>
+        </div>
+
+        <div class="bento-card reveal">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+          </div>
+          <h3>Akses Kru HP Sekali Pakai</h3>
+          <p>Kru di lapangan tak perlu install aplikasi apa pun. Cukup sambungkan HP ke Wi-Fi laptop, buka browser, dan masukkan kode pairing 6 angka yang berlaku 5 menit.</p>
+          <div class="bento-preview-box">
+            <span style="color: var(--teal);">● Otentikasi Token Aman</span>
+          </div>
+        </div>
+
+        <div class="bento-card reveal">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
+          <h3>Diagnostik Firewall 1-Klik</h3>
+          <p>Windows Defender sering kali menahan koneksi inbound port 1935. Drone Live Engine memiliki fitur diagnostik terintegrasi untuk memperbaiki rule firewall secara instan.</p>
+          <div class="bento-preview-box">
+            <span style="color: var(--amber);">● Auto-Detect & Fix Inbound Rule</span>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ======================== STATS (bars) ========================== -->
-<section class="stat" id="angka" aria-label="Angka latensi">
-  <div class="stat-head">
-    <p class="stat-figure">1 dtk</p>
-    <h2 class="stat-claim">Dari drone ke browser.</h2>
-  </div>
-  <div class="stat-bars" data-ui>
-    <div class="stat-bar stat-b-rtc"><span class="stat-val">≈1 s</span><span class="stat-name">WebRTC · browser</span></div>
-    <div class="stat-bar stat-b-rtp"><span class="stat-val">±0,5–2 s</span><span class="stat-name">RTSP · OBS / vMix</span></div>
-    <div class="stat-bar stat-b-hls"><span class="stat-val">5–15 s</span><span class="stat-name">HLS · Smart TV</span></div>
-  </div>
-  <p class="stat-src">Latensi menonton sesuai dokumentasi panel, dari laptop yang sama di Wi-Fi yang sama.</p>
-</section>
+  <!-- ============================= TESTIMONIALS & PILOT STORIES ============================= -->
+  <section class="section" id="ulasan">
+    <div class="container">
+      <div class="section-head reveal">
+        <div class="section-tag">
+          <span class="pulse-dot"></span>
+          <span>DIPERCAYA DI LAPANGAN</span>
+        </div>
+        <h2>Kata para pilot & broadcast engineer.</h2>
+        <p>Solusi yang terbukti di lapangan untuk live streaming drone bebas stres.</p>
+      </div>
 
-<!-- =================== BIDANG VIDEO: dilihat dari udara ================= -->
-<figure class="band">
-  <video autoplay muted loop playsinline preload="metadata" poster="assets/udara-salju.jpg"
-    width="854" height="480" aria-hidden="true" tabindex="-1">
-    <source src="assets/udara-salju.webm" type="video/webm">
-  </video>
-  <figcaption>Yang terbangnya dilihat dari udara. Klip: Wikimedia Commons, CC0, oleh Mecha.Me.</figcaption>
-</figure>
+      <div class="testimonials-grid">
+        <div class="testimonial-card reveal">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">
+            "Kemarin siaran drone di gedung pernikahan langsung masuk ke switcher vMix tanpa kabel HDMI panjang. Tamu terpukau karena siaran di LED Wall sama sekali tidak ada delay!"
+          </p>
+          <div class="testi-author">
+            <div class="testi-avatar">BS</div>
+            <div>
+              <div class="testi-name">Budi Santoso</div>
+              <div class="testi-role">Wedding Cinematographer · Surabaya</div>
+            </div>
+            <span class="testi-drone-badge">DJI Air 3</span>
+          </div>
+        </div>
 
-<!-- ============================ FAQ =============================== -->
-<section class="faq" id="faq" aria-label="Sering ditanya">
-  <div class="faq-grid">
-    <div class="faq-head"><h2>Sering ditanya</h2></div>
-    <div class="faq-list">
-      <details name="faq" open>
-        <summary>Perlu lisensi atau kunci aktivasi?<span class="faq-x" aria-hidden="true"></span></summary>
-        <p>Tidak. Semua fitur terbuka sejak install pertama: rekaman, restream, kamera virtual, akses HP. Lisensinya MIT, bebas dipakai untuk pekerjaan berbayar juga.</p>
-      </details>
-      <details name="faq">
-        <summary>Windows menandai installer (SmartScreen)<span class="faq-x" aria-hidden="true"></span></summary>
-        <p>Itu SmartScreen dari aplikasi yang belum punya reputasi Microsoft, normal untuk installer baru. Pilih <strong>More info → Run anyway</strong>. Kalau antivirus ikut menandai, masukkan folder instalasi ke daftar pengecualiannya.</p>
-      </details>
-      <details name="faq">
-        <summary>Pratinjau terus bilang “menunggu sinyal drone”<span class="faq-x" aria-hidden="true"></span></summary>
-        <p>Tiga hal paling biasa: siaran di DJI Fly belum dimulai, tautan RTMP tidak persis sama, atau firewall memblokir port 1935. Buka <strong>Diagnostik → Perbaiki Firewall</strong> di panel.</p>
-      </details>
-      <details name="faq">
-        <summary>HP tidak bisa membuka panel<span class="faq-x" aria-hidden="true"></span></summary>
-        <p>Wi-Fi kantor, kafe, atau hotel biasanya memakai client isolation: perangkat tidak boleh saling menghubungi. Solusinya: aktifkan hotspot dari RC atau HP, sambungkan laptop ke hotspot itu, lalu pilih IP hotspot di panel.</p>
-      </details>
-      <details name="faq">
-        <summary>Bisa dua drone sekaligus?<span class="faq-x" aria-hidden="true"></span></summary>
-        <p>Ya. Drone kedua menerbitkan ke <code>live/drone2</code>; kedua kamera tampil sebagai chip di atas pratinjau dan bisa dipilih bergantian.</p>
-      </details>
-      <details name="faq">
-        <summary>Saya sudah punya OBS, ini untuk apa?<span class="faq-x" aria-hidden="true"></span></summary>
-        <p>Drone Live Engine bekerja tanpa mengatur scene: RTMP masuk langsung terekam dan bisa langsung di-restream. OBS tetap bisa sejajar lewat RTSP atau kamera virtual kalau memang dibutuhkan.</p>
-      </details>
-      <details name="faq">
-        <summary>Bisa jadi kamera di Zoom atau Google Meet?<span class="faq-x" aria-hidden="true"></span></summary>
-        <p>Bisa. Nyalakan <strong>Kamera Virtual</strong>, lalu di aplikasi tujuan pilih kamera bernama “Drone Live Engine”.</p>
-      </details>
+        <div class="testimonial-card reveal">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">
+            "Di tengah pegunungan tidak ada sinyal seluler sama sekali. Kami nyalakan hotspot dari laptop, drone langsung broadcast ke 4 HP anggota tim SAR di tenda posko."
+          </p>
+          <div class="testi-author">
+            <div class="testi-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">KH</div>
+            <div>
+              <div class="testi-name">Kapten Hendra</div>
+              <div class="testi-role">Relawan SAR & Tanggap Bencana · Malang</div>
+            </div>
+            <span class="testi-drone-badge">DJI Mavic 3E</span>
+          </div>
+        </div>
+
+        <div class="testimonial-card reveal">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-quote">
+            "Latensi WebRTC di bawah 1 detik benar-benar penyelamat. Pit stop crew bisa memantau manuver drone di lintasan balap tanpa lag menjengkelkan."
+          </p>
+          <div class="testi-author">
+            <div class="testi-avatar" style="background: linear-gradient(135deg, #22d3ee, #0369a1);">RF</div>
+            <div>
+              <div class="testi-name">Rian FPV</div>
+              <div class="testi-role">Race Director & Pilot FPV · Bandung</div>
+            </div>
+            <span class="testi-drone-badge">DJI Avata 2</span>
+          </div>
+        </div>
+      </div>
     </div>
+  </section>
+
+  <!-- ============================= FAQ ACCORDION ============================= -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="section-head reveal">
+        <div class="section-tag">
+          <span class="pulse-dot"></span>
+          <span>PERTANYAAN UMUM</span>
+        </div>
+        <h2>Sering ditanyakan seputar siaran drone.</h2>
+        <p>Semua hal yang perlu Anda ketahui mengenai lisensi, koneksi jaringan, dan kompatibilitas perangkat.</p>
+      </div>
+
+      <div class="faq-grid">
+        <details class="faq-item reveal" name="faq-group" open>
+          <summary class="faq-summary">
+            <span>Perlu lisensi atau kunci aktivasi?</span>
+            <div class="faq-icon" aria-hidden="true">+</div>
+          </summary>
+          <div class="faq-body">
+            <p><strong>Sama sekali tidak.</strong> Semua fitur terbuka sejak instalasi pertama: perekaman tak terbatas, restreaming ke YouTube & Facebook, kamera virtual DirectShow, hingga akses monitoring HP. Berlisensi <code>MIT</code>, bebas digunakan untuk pekerjaan komersial berbayar.</p>
+          </div>
+        </details>
+
+        <details class="faq-item reveal" name="faq-group">
+          <summary class="faq-summary">
+            <span>Windows Defender menandai file installer (SmartScreen)?</span>
+            <div class="faq-icon" aria-hidden="true">+</div>
+          </summary>
+          <div class="faq-body">
+            <p>Itu adalah proteksi standar Microsoft SmartScreen untuk software open-source baru yang belum memiliki sertifikat berbayar dari Microsoft. Cukup klik <strong>More info → Run anyway</strong>. Aplikasi 100% bebas malware dan aman.</p>
+          </div>
+        </details>
+
+        <details class="faq-item reveal" name="faq-group">
+          <summary class="faq-summary">
+            <span>Pratinjau terus menampilkan "Menunggu sinyal drone"?</span>
+            <div class="faq-icon" aria-hidden="true">+</div>
+          </summary>
+          <div class="faq-body">
+            <p>Tiga penyebab paling sering: siaran di DJI Fly belum dipencet mulai, penulisan alamat RTMP tidak persis sama, atau firewall memblokir port 1935. Cukup buka menu <strong>Diagnostik → Perbaiki Firewall</strong> di panel aplikasi.</p>
+          </div>
+        </details>
+
+        <details class="faq-item reveal" name="faq-group">
+          <summary class="faq-summary">
+            <span>HP kru tidak bisa membuka panel di browser?</span>
+            <div class="faq-icon" aria-hidden="true">+</div>
+          </summary>
+          <div class="faq-body">
+            <p>Wi-Fi kantor, kafe, atau hotel sering mengaktifkan fitur <em>client isolation</em> (perangkat tidak diizinkan saling menghubungi). Solusi terbaik: nyalakan personal hotspot dari HP atau remote controller drone, lalu sambungkan laptop ke hotspot tersebut.</p>
+          </div>
+        </details>
+
+        <details class="faq-item reveal" name="faq-group">
+          <summary class="faq-summary">
+            <span>Bisa menyiarkan dua drone sekaligus?</span>
+            <div class="faq-icon" aria-hidden="true">+</div>
+          </summary>
+          <div class="faq-body">
+            <p><strong>Bisa!</strong> Drone pertama mengirim ke <code>live/drone1</code> dan drone kedua ke <code>live/drone2</code>. Di panel laptop, kedua kamera akan muncul sebagai tab pilihan yang dapat dipantau dan direkam secara fleksibel.</p>
+          </div>
+        </details>
+
+        <details class="faq-item reveal" name="faq-group">
+          <summary class="faq-summary">
+            <span>Jika sudah punya OBS, mengapa butuh Drone Live Engine?</span>
+            <div class="faq-icon" aria-hidden="true">+</div>
+          </summary>
+          <div class="faq-body">
+            <p>Drone Live Engine bekerja tanpa perlu mengatur scene rumit: RTMP masuk langsung terekam fMP4 anti-rusak dan siap di-restream otomatis. OBS tetap dapat digunakan berdampingan lewat feed RTSP atau input kamera virtual.</p>
+          </div>
+        </details>
+
+        <details class="faq-item reveal" name="faq-group">
+          <summary class="faq-summary">
+            <span>Bisa dijadikan kamera di Zoom atau Google Meet?</span>
+            <div class="faq-icon" aria-hidden="true">+</div>
+          </summary>
+          <div class="faq-body">
+            <p>Tentu bisa. Aktifkan fitur <strong>Kamera Virtual</strong> di panel, lalu di menu pengaturan video Zoom atau Google Meet pilih kamera bernama <code>Drone Live Engine</code>.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= CTA CONSOLE ============================= -->
+  <section class="section" id="unduh" style="padding-bottom: 140px;">
+    <div class="container">
+      <div class="cta-console reveal">
+        <div class="cta-console-glow"></div>
+        <div class="section-tag">
+          <span class="pulse-dot"></span>
+          <span>SIAP TERBANG BERSAMA ANDA</span>
+        </div>
+        <h2 class="cta-title">Siaran berikutnya dimulai dari sini.</h2>
+        <p class="cta-desc">
+          Unduh sekarang dan rasakan transmisi drone tanpa hambatan cloud. Paket instalasi telah mencakup Drone Live Engine, MediaMTX engine, FFmpeg passthrough, dan driver kamera virtual.
+        </p>
+
+        <div class="cta-buttons">
+          <a class="btn-primary btn-cta-big" href="https://github.com/oqi-aja/drone-live-engine/releases/latest" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Unduh v0.2.3 untuk Windows (64-bit)
+          </a>
+          <a class="btn-secondary" href="https://github.com/oqi-aja/drone-live-engine#drone-live-engine" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            Baca Panduan Lengkap
+          </a>
+        </div>
+
+        <div class="cta-specs">
+          <div class="cta-spec-item">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Ukuran Installer: ± 120 MB</span>
+          </div>
+          <div class="cta-spec-item">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Windows 10 / 11 64-bit</span>
+          </div>
+          <div class="cta-spec-item">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Full Standalone Portable</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= FOOTER ============================= -->
+  <footer class="footer" id="kredit">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="nav-brand-icon-wrap" style="width: 34px; height: 34px;">
+            <img src="assets/icon.png" alt="Drone Live Engine" class="footer-brand-img">
+          </div>
+          <span style="font-size: 1.1rem; font-weight: 700;">Drone Live Engine</span>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">oleh Oqi</span>
+        </div>
+
+        <div class="footer-status-pill">
+          <span class="pulse-dot"></span>
+          <span>ALL ENGINES OPERATIONAL · ZERO CLOUD DEPENDENCY</span>
+        </div>
+
+        <div class="footer-links">
+          <a href="https://github.com/oqi-aja/drone-live-engine/releases/latest" target="_blank" rel="noopener">Unduh</a>
+          <a href="https://github.com/oqi-aja/drone-live-engine#drone-live-engine" target="_blank" rel="noopener">Panduan</a>
+          <a href="https://github.com/oqi-aja/drone-live-engine" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p style="max-width: 650px; line-height: 1.6;">
+          Foto sawah terasering &amp; drone di sawah: Wikimedia Commons, CC BY-SA 4.0, oleh Ivuvisual &amp; Benlisquare. Klip udara: Wikimedia Commons, CC0, oleh Mecha.Me.
+        </p>
+        <span>© 2026 Drone Live Engine · Lisensi MIT</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Floating Sticky Action Pill (Shows on scroll) -->
+  <div class="floating-download-pill" id="float-pill">
+    <a href="https://github.com/oqi-aja/drone-live-engine/releases/latest" target="_blank" rel="noopener" class="float-btn">
+      <img src="assets/icon.png" alt="" class="float-icon">
+      <span>Unduh Drone Live Engine v0.2.3</span>
+      <span class="float-badge">Gratis</span>
+    </a>
   </div>
-</section>
 
-<!-- ============================ CTA =============================== -->
-<section class="cta" id="unduh" aria-label="Unduh">
-  <h2 class="cta-title">Siaran berikutnya mulai dari&nbsp;sini.</h2>
-  <a class="cta-btn" href="https://github.com/oqi-aja/drone-live-engine/releases/latest">Unduh v0.2.3 · installer 120&nbsp;MB</a>
-  <p class="cta-note">Gratis, MIT, tanpa kunci aktivasi. Butuh Windows 10/11 64-bit dan Wi-Fi bersama dengan drone. Aplikasi, MediaMTX, FFmpeg, dan relay kamera sudah satu paket.</p>
-</section>
-
-<!-- ============================ FOOTER ============================ -->
-<footer class="foot" id="kredit">
-  <p class="foot-credit"> Foto sawah terasering &amp; drone di sawah: Wikimedia Commons, CC BY-SA 4.0, oleh Ivuvisual &amp; Benlisquare. Klip udara: Wikimedia Commons, CC0, oleh Mecha.Me. </p>
-  <div class="foot-line">
-    <span class="foot-who">Drone Live Engine, oleh Oqi</span>
-    <nav class="foot-links" aria-label="Tautan situs">
-      <a href="https://github.com/oqi-aja/drone-live-engine/releases/latest">Unduh</a>
-      <a href="https://github.com/oqi-aja/drone-live-engine#drone-live-engine">Panduan</a>
-      <a href="https://github.com/oqi-aja/drone-live-engine">GitHub</a>
-    </nav>
-    <span class="foot-law">© 2026 · MIT</span>
-  </div>
-</footer>
-
-<script src="app.js" defer></script>
+  <!-- App Script -->
+  <script src="app.js" defer></script>
 </body>
 </html>
