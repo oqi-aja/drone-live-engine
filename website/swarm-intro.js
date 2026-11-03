@@ -1,9 +1,13 @@
 /**
- * SWARM CURSORS INTRO — Website Rebuild Animation
+ * SWARM CURSORS INTRO — Website Rebuild Animation (FIXED)
  * Inspired by: https://github.com/DhvanilPatel/swarm-cursors
  * 
- * Displays an animated team of cursors that rebuild the website on first load.
- * Respects prefers-reduced-motion and uses sessionStorage to avoid repeat.
+ * FIXED: Proper element snapshot, task queue, cursor coordination
+ * - Snapshot elemen asli sebelum animasi
+ * - Buat task queue dengan target koordinat valid
+ * - Distribusikan task ke cursor dengan koordinasi
+ * - Reveal elemen saat cursor mencapai target
+ * - Fallback jika animasi gagal
  */
 
 (function () {
@@ -16,9 +20,9 @@
   const CONFIG = {
     duration: 55000, // Total animation duration (ms)
     cursorCount: {
-      desktop: 12,  // 1440px
-      tablet: 8,    // 768px
-      mobile: 4     // 390px
+      desktop: 12,
+      tablet: 8,
+      mobile: 4
     },
     colors: ['#22d3ee', '#34d399', '#fbbf24', '#ef4444', '#f97316'],
     easing: {
@@ -36,12 +40,12 @@
   let overlayLayer = null;
   let skipButton = null;
   let progressBar = null;
+  let elementSnapshot = [];
+  let taskQueue = [];
+  let completedTasks = 0;
 
   // ===== UTILITIES =====
 
-  /**
-   * Get cursor count based on viewport width
-   */
   function getCursorCount() {
     const width = window.innerWidth;
     if (width >= 1200) return CONFIG.cursorCount.desktop;
@@ -49,25 +53,100 @@
     return CONFIG.cursorCount.mobile;
   }
 
-  /**
-   * Get random color
-   */
   function getRandomColor() {
     return CONFIG.colors[Math.floor(Math.random() * CONFIG.colors.length)];
   }
 
-  /**
-   * Linear interpolation
-   */
   function lerp(start, end, t) {
     return start + (end - start) * t;
   }
 
-  /**
-   * Calculate distance between two points
-   */
   function distance(x1, y1, x2, y2) {
     return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+  }
+
+  /**
+   * SNAPSHOT: Capture element positions and visibility state
+   */
+  function snapshotElements() {
+    elementSnapshot = [];
+    const selectors = [
+      '.navbar',
+      '.hero',
+      '.section',
+      '.replica-card',
+      '.btn-primary',
+      '.nav-link',
+      'h2',
+      'h3',
+      '.step-card',
+      '.bento-card'
+    ];
+
+    selectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach((el, idx) => {
+        const rect = el.getBoundingClientRect();
+        const scrollX = window.scrollX || window.pageXOffset;
+        const scrollY = window.scrollY || window.pageYOffset;
+
+        // Valid target check
+        if (rect.width > 0 && rect.height > 0) {
+          elementSnapshot.push({
+            element: el,
+            selector: selector,
+            index: idx,
+            x: rect.left + scrollX + rect.width / 2,
+            y: rect.top + scrollY + rect.height / 2,
+            width: rect.width,
+            height: rect.height
+          });
+        }
+      });
+    });
+
+    return elementSnapshot;
+  }
+
+  /**
+   * BUILD TASK QUEUE: Distribute snapshot targets to cursor workers
+   */
+  function buildTaskQueue() {
+    taskQueue = [];
+    const cursorCount = getCursorCount();
+    const tasksPerCursor = Math.max(1, Math.ceil(elementSnapshot.length / cursorCount));
+
+    elementSnapshot.forEach((snap, idx) => {
+      const cursorId = Math.floor(idx / tasksPerCursor) % cursorCount;
+      const phase = Math.floor(idx / elementSnapshot.length * 5); // 5 phases
+
+      taskQueue.push({
+        id: idx,
+        cursorId: cursorId,
+        phase: phase,
+        targetX: snap.x,
+        targetY: snap.y,
+        element: snap.element,
+        completed: false,
+        startTime: (phase / 5) * CONFIG.duration,
+        endTime: ((phase + 1) / 5) * CONFIG.duration
+      });
+    });
+
+    return taskQueue;
+  }
+
+  /**
+   * Reveal element when cursor reaches it
+   */
+  function revealElement(task) {
+    if (task.completed || !task.element) return;
+
+    const el = task.element;
+    el.style.opacity = '1';
+    el.style.transform = 'translateY(0)';
+    el.style.pointerEvents = 'auto';
+    task.completed = true;
+    completedTasks++;
   }
 
   /**
@@ -187,7 +266,9 @@
       color,
       size,
       pathHistory: [{ x: startX, y: startY }],
-      maxPathLength: 20
+      maxPathLength: 20,
+      assignedTasks: [],
+      currentTaskIdx: 0
     };
   }
 
@@ -200,23 +281,49 @@
 
     cursors = [];
     for (let i = 0; i < count; i++) {
-      const startX = window.innerWidth * (0.2 + Math.random() * 0.6);
-      const startY = window.innerHeight * (0.2 + Math.random() * 0.6);
+      const startX = window.innerWidth / 2 + (Math.random() - 0.5) * 200;
+      const startY = window.innerHeight / 2 + (Math.random() - 0.5) * 200;
       const cursor = createCursor(startX, startY);
       cursors.push(cursor);
       svg.appendChild(cursor.g);
     }
+
+    // Assign tasks to cursors
+    taskQueue.forEach(task => {
+      const cursor = cursors[task.cursorId % cursors.length];
+      cursor.assignedTasks.push(task);
+    });
   }
 
   /**
-   * Update cursor positions
+   * Update cursor positions towards assigned tasks
    */
   function updateCursors(progress) {
-    cursors.forEach((cursor, idx) => {
-      // Assign target based on animation phase
-      const target = getTargetForPhase(progress, idx);
-      cursor.targetX = target.x;
-      cursor.targetY = target.y;
+    cursors.forEach((cursor) => {
+      if (!cursor.assignedTasks || cursor.assignedTasks.length === 0) return;
+
+      // Get current task
+      const task = cursor.assignedTasks[cursor.currentTaskIdx];
+      if (!task) {
+        // All tasks done, move to center
+        cursor.targetX = window.innerWidth / 2;
+        cursor.targetY = window.innerHeight / 2;
+      } else {
+        // Check if task is in current phase
+        const taskProgress = (progress * CONFIG.duration - task.startTime) / (task.endTime - task.startTime);
+        
+        if (taskProgress >= 0 && taskProgress <= 1) {
+          cursor.targetX = task.targetX;
+          cursor.targetY = task.targetY;
+
+          // Reveal when cursor is close
+          const distToTarget = distance(cursor.x, cursor.y, cursor.targetX, cursor.targetY);
+          if (distToTarget < 50) {
+            revealElement(task);
+            cursor.currentTaskIdx++;
+          }
+        }
+      }
 
       // Move towards target
       const dx = cursor.targetX - cursor.x;
@@ -224,24 +331,24 @@
       const dist = distance(0, 0, dx, dy);
 
       if (dist > 1) {
-        const speed = 2 + Math.random() * 2;
+        const speed = 3 + Math.random() * 2;
         cursor.vx = (dx / dist) * speed;
         cursor.vy = (dy / dist) * speed;
       } else {
-        cursor.vx *= 0.8;
-        cursor.vy *= 0.8;
+        cursor.vx *= 0.9;
+        cursor.vy *= 0.9;
       }
 
       cursor.x += cursor.vx;
       cursor.y += cursor.vy;
 
-      // Update path history for trail effect
+      // Update path history
       cursor.pathHistory.push({ x: cursor.x, y: cursor.y });
       if (cursor.pathHistory.length > cursor.maxPathLength) {
         cursor.pathHistory.shift();
       }
 
-      // Draw path trail
+      // Draw trail
       if (cursor.pathHistory.length > 1) {
         let pathData = `M ${cursor.pathHistory[0].x} ${cursor.pathHistory[0].y}`;
         for (let i = 1; i < cursor.pathHistory.length; i++) {
@@ -251,78 +358,8 @@
       }
 
       // Update circle position
-      cursor.g.setAttribute('transform', `translate(${cursor.x}, ${cursor.y})`);
-    });
-  }
-
-  /**
-   * Get target position based on animation phase
-   */
-  function getTargetForPhase(progress, cursorIdx) {
-    const phases = [
-      { start: 0.0, end: 0.1, target: 'center' },           // 0–5.5s: center
-      { start: 0.1, end: 0.25, target: 'navbar' },          // 5.5–13.75s: navbar
-      { start: 0.25, end: 0.5, target: 'hero' },            // 13.75–27.5s: hero
-      { start: 0.5, end: 0.75, target: 'content' },         // 27.5–41.25s: content
-      { start: 0.75, end: 1.0, target: 'footer' }           // 41.25–55s: footer
-    ];
-
-    const phase = phases.find(p => progress >= p.start && progress < p.end) || phases[phases.length - 1];
-
-    const targets = {
-      center: () => ({
-        x: window.innerWidth / 2 + (Math.random() - 0.5) * 100,
-        y: window.innerHeight / 2 + (Math.random() - 0.5) * 100
-      }),
-      navbar: () => ({
-        x: Math.random() * window.innerWidth,
-        y: 60 + Math.random() * 40
-      }),
-      hero: () => ({
-        x: window.innerWidth * (0.2 + Math.random() * 0.6),
-        y: window.innerHeight * (0.3 + Math.random() * 0.4)
-      }),
-      content: () => ({
-        x: window.innerWidth * (0.1 + Math.random() * 0.8),
-        y: window.innerHeight * (0.5 + Math.random() * 0.4)
-      }),
-      footer: () => ({
-        x: Math.random() * window.innerWidth,
-        y: window.innerHeight - 100 + Math.random() * 80
-      })
-    };
-
-    return targets[phase.target]();
-  }
-
-  /**
-   * Reveal elements based on progress
-   */
-  function revealElements(progress) {
-    const reveals = [
-      { selector: '.navbar', start: 0.1, end: 0.25 },
-      { selector: '.hero', start: 0.25, end: 0.5 },
-      { selector: '#cara', start: 0.5, end: 0.62 },
-      { selector: '#skenario', start: 0.62, end: 0.74 },
-      { selector: '#alur', start: 0.74, end: 0.86 },
-      { selector: '#latensi', start: 0.86, end: 0.92 }
-    ];
-
-    reveals.forEach(reveal => {
-      const el = document.querySelector(reveal.selector);
-      if (!el) return;
-
-      if (progress >= reveal.start && progress <= reveal.end) {
-        const phaseProgress = (progress - reveal.start) / (reveal.end - reveal.start);
-        el.style.opacity = phaseProgress;
-        el.style.transform = `translateY(${20 * (1 - phaseProgress)}px)`;
-      } else if (progress > reveal.end) {
-        el.style.opacity = '1';
-        el.style.transform = 'translateY(0)';
-      } else {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(20px)';
-      }
+      cursor.circle.setAttribute('cx', cursor.x);
+      cursor.circle.setAttribute('cy', cursor.y);
     });
   }
 
@@ -339,15 +376,12 @@
     // Update cursors
     updateCursors(progress);
 
-    // Reveal elements
-    revealElements(progress);
-
     // Update progress bar
     if (progressBar) {
       progressBar.style.width = `${progress * 100}%`;
     }
 
-    // Continue animation or finish
+    // Continue or finish
     if (progress < 1) {
       animationFrameId = requestAnimationFrame(animate);
     } else {
@@ -360,24 +394,29 @@
    */
   function finish() {
     isActive = false;
-    if (overlayLayer) {
-      overlayLayer.style.opacity = '0';
-      overlayLayer.style.pointerEvents = 'none';
-      setTimeout(() => {
-        overlayLayer.remove();
-      }, 500);
-    }
 
-    // Mark intro as shown
-    sessionStorage.setItem('swarm-intro-shown', 'true');
-
-    // Show all content
+    // Ensure all elements are visible
     document.querySelectorAll('body > *').forEach(el => {
       if (!el.id.startsWith('swarm-')) {
         el.style.opacity = '1';
         el.style.transform = 'none';
+        el.style.pointerEvents = 'auto';
       }
     });
+
+    // Fade out overlay
+    if (overlayLayer) {
+      overlayLayer.style.opacity = '0';
+      overlayLayer.style.pointerEvents = 'none';
+      setTimeout(() => {
+        if (overlayLayer && overlayLayer.parentNode) {
+          overlayLayer.remove();
+        }
+      }, 500);
+    }
+
+    // Mark as shown
+    sessionStorage.setItem('swarm-intro-shown', 'true');
 
     // Cancel animation
     if (animationFrameId) {
@@ -397,6 +436,26 @@
   }
 
   /**
+   * Fallback: Show website immediately
+   */
+  function fallback() {
+    document.querySelectorAll('body > *').forEach(el => {
+      if (!el.id.startsWith('swarm-')) {
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+        el.style.pointerEvents = 'auto';
+      }
+    });
+
+    if (overlayLayer && overlayLayer.parentNode) {
+      overlayLayer.remove();
+    }
+
+    sessionStorage.setItem('swarm-intro-shown', 'true');
+    console.warn('[SwarmIntro] Fallback triggered — showing website');
+  }
+
+  /**
    * Initialize intro system
    */
   function init() {
@@ -411,38 +470,71 @@
       return;
     }
 
-    // Create overlay and elements
-    const { overlay, svg, skip: skipBtn, progress } = createOverlay();
-    overlayLayer = overlay;
-    skipButton = skipBtn;
-    progressBar = progress;
-
-    document.body.appendChild(overlay);
-
-    // Initialize cursors
-    initCursors();
-
-    // Setup event listeners
-    skipBtn.addEventListener('click', skip);
-    window.addEventListener('resize', () => {
-      if (svg) {
-        svg.setAttribute('width', window.innerWidth);
-        svg.setAttribute('height', window.innerHeight);
+    try {
+      // Snapshot elements FIRST (before hiding)
+      snapshotElements();
+      
+      if (elementSnapshot.length === 0) {
+        console.warn('[SwarmIntro] No elements to snapshot — fallback');
+        fallback();
+        return;
       }
-    });
 
-    // Hide initial content (will be revealed during animation)
-    document.querySelectorAll('body > *').forEach(el => {
-      if (!el.id.startsWith('swarm-')) {
-        el.style.opacity = '0';
-        el.style.pointerEvents = 'none';
+      // Build task queue
+      buildTaskQueue();
+
+      if (taskQueue.length === 0) {
+        console.warn('[SwarmIntro] No tasks created — fallback');
+        fallback();
+        return;
       }
-    });
 
-    // Start animation
-    isActive = true;
-    startTime = 0;
-    animationFrameId = requestAnimationFrame(animate);
+      // Create overlay
+      const { overlay, svg, skip: skipBtn, progress } = createOverlay();
+      overlayLayer = overlay;
+      skipButton = skipBtn;
+      progressBar = progress;
+
+      // Hide content (now that snapshot is done)
+      document.querySelectorAll('body > *').forEach(el => {
+        if (!el.id.startsWith('swarm-')) {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(10px)';
+          el.style.pointerEvents = 'none';
+        }
+      });
+
+      document.body.appendChild(overlay);
+
+      // Initialize cursors
+      initCursors();
+
+      // Setup event listeners
+      skipBtn.addEventListener('click', skip);
+      window.addEventListener('resize', () => {
+        if (svg) {
+          svg.setAttribute('width', window.innerWidth);
+          svg.setAttribute('height', window.innerHeight);
+        }
+      });
+
+      // Start animation
+      isActive = true;
+      startTime = 0;
+      animationFrameId = requestAnimationFrame(animate);
+
+      // Safety fallback: if animation doesn't finish after timeout
+      setTimeout(() => {
+        if (isActive) {
+          console.warn('[SwarmIntro] Animation timeout — fallback');
+          finish();
+        }
+      }, CONFIG.duration + 1000);
+
+    } catch (error) {
+      console.error('[SwarmIntro] Error during init:', error);
+      fallback();
+    }
   }
 
   // ===== PUBLIC API =====
@@ -452,11 +544,10 @@
     isActive: () => isActive
   };
 
-  // Auto-init on DOMContentLoaded if not already shown
+  // Auto-init on DOMContentLoaded
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
-
 })();
